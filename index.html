@@ -270,7 +270,8 @@ textarea{resize:none;min-height:90px;line-height:1.55}
 .city-mapWrap{background:var(--paper);border:1px solid var(--line);height:500px;position:relative;overflow:hidden}
 #citymap{position:absolute;inset:0}
 #citymap svg{width:100%;height:100%;display:block;background:#fbf9f2}
-#citymap path.county{cursor:pointer;transition:stroke-width .12s}
+#citymap path.county{cursor:pointer;stroke:rgba(22,27,23,0.10);stroke-width:0.2;transition:stroke .1s,stroke-width .1s}
+#citymap path.county:hover{stroke:#161b17;stroke-width:0.9}
 .city-tip{position:absolute;display:none;background:#fbf9f2;border:1px solid var(--line2);padding:9px 13px;font-size:12.5px;border-radius:4px;pointer-events:none;box-shadow:var(--shadow);z-index:600;white-space:nowrap;line-height:1.45}
 .city-tip b{font-family:'Fraunces',serif;font-weight:500;font-size:13.5px;color:var(--ink);display:block;margin-bottom:1px}
 .city-tip .num{color:var(--muted);font-variant-numeric:tabular-nums;font-size:11.5px;letter-spacing:.01em}
@@ -1289,11 +1290,8 @@ async function initCityMap(){
       const s=fipsScore[fips];
       return s===undefined?'#ebe6d8':cityHeatColor(s);
     })
-    .attr('stroke','rgba(22,27,23,0.10)')
-    .attr('stroke-width',0.2)
     .style('opacity',0)
-    .on('mouseover',function(event,d){
-      d3.select(this).attr('stroke','#161b17').attr('stroke-width',0.9).raise();
+    .on('mouseenter',function(event,d){
       const fips=String(d.id).padStart(5,'0');
       const s=fipsScore[fips];
       const name=(d.properties&&d.properties.name)||'Unknown';
@@ -1312,14 +1310,15 @@ async function initCityMap(){
       if(y+th>r.height-8) y=event.clientY-r.top-th-10;
       tip.style.left=x+'px'; tip.style.top=y+'px';
     })
-    .on('mouseout',function(){
-      d3.select(this).attr('stroke','rgba(22,27,23,0.10)').attr('stroke-width',0.2);
+    .on('mouseleave',function(){
       if(tip) tip.style.display='none';
     })
     .transition()
     .delay(()=>Math.random()*700)
     .duration(650)
     .style('opacity',1);
+  // Safety: when the mouse leaves the map entirely, hide the tooltip no matter what
+  svg.on('mouseleave',()=>{ if(tip) tip.style.display='none'; });
   // State borders (drawn on top, fade in after counties)
   svg.append('path')
     .datum(statesMesh)
@@ -1355,7 +1354,13 @@ async function loadNeed(){
   for(const f of ['need_index.min.json','need_index.json']){
     try{const r=await fetch(f,{cache:'no-store'});if(!r.ok)continue;const j=await r.json();
       if(j.areas){
-        j.areas.forEach(a=>{if(a.state==='NJ'&&a.area&&typeof a.need_score==='number')AREA_NEED[a.area]=a.need_score;});
+        j.areas.forEach(a=>{
+          if(typeof a.need_score!=='number') return;
+          // NJ-keyed by area name (used by the rest of the app for shelter scoring)
+          if(a.state==='NJ' && a.area) AREA_NEED[a.area]=a.need_score;
+          // ALL counties keyed by FIPS — required by the national choropleth in City view
+          if(a.fips) AREA_NEED['fips:'+String(a.fips).padStart(5,'0')]=a.need_score;
+        });
         CITY_ALL=j.areas;
         const g={}; j.areas.forEach(a=>{(g[a.state]=g[a.state]||[]).push(a.need_score);});
         CITY_STATES=Object.keys(g).map(s=>({state:s,score:Math.round(g[s].reduce((x,y)=>x+y,0)/g[s].length),count:g[s].length}));
