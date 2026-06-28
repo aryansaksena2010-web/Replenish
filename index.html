@@ -269,13 +269,6 @@ textarea{resize:none;min-height:90px;line-height:1.55}
 .city-sHead .meta{font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums;letter-spacing:.02em}
 .city-mapWrap{background:var(--paper);border:1px solid var(--line);height:500px;position:relative;overflow:hidden}
 #citymap{position:absolute;inset:0}
-#citymap svg{width:100%;height:100%;display:block;background:#fbf9f2}
-#citymap path.county{cursor:pointer;stroke:rgba(22,27,23,0.10);stroke-width:0.2;transition:stroke .1s,stroke-width .1s}
-#citymap path.county:hover{stroke:#161b17;stroke-width:0.9}
-.city-tip{position:absolute;display:none;background:#fbf9f2;border:1px solid var(--line2);padding:9px 13px;font-size:12.5px;border-radius:4px;pointer-events:none;box-shadow:var(--shadow);z-index:600;white-space:nowrap;line-height:1.45}
-.city-tip b{font-family:'Fraunces',serif;font-weight:500;font-size:13.5px;color:var(--ink);display:block;margin-bottom:1px}
-.city-tip .num{color:var(--muted);font-variant-numeric:tabular-nums;font-size:11.5px;letter-spacing:.01em}
-.city-loading{display:grid;place-items:center;width:100%;height:100%;color:var(--muted);font-size:13px;font-family:'Fraunces',serif;font-style:italic;font-weight:300}
 .city-legend{position:absolute;top:12px;right:12px;z-index:500;background:rgba(251,249,242,.96);border:1px solid var(--line);padding:11px 13px;font-size:10.5px}
 .city-legend .lt{font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-size:9.5px;margin-bottom:7px}
 .city-legend .scale{display:flex;align-items:center;gap:7px;margin-bottom:9px}
@@ -401,8 +394,6 @@ table.city-counties .last{font-size:11.5px;color:var(--muted);font-style:italic;
 <div class="toast" id="toast"><span class="ic">✓</span><span id="toastMsg"></span></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
 <script>
 /* ======================= REFERENCE DATA ======================= */
 const MILES=20, KM_RADIUS=MILES*1.60934, MPH=32;
@@ -727,11 +718,13 @@ function renderPoster(){
     el.innerHTML=`
       <span class="label">Create a listing</span>
       <div style="display:grid;grid-template-columns:1.3fr .75fr .8fr 1fr;gap:9px">
-        <select id="fcat">${ALLCATS.map(c=>`<option>${c}</option>`).join('')}</select>
+        <select id="fcat" onchange="document.getElementById('fcatother').style.display=this.value==='Other'?'block':'none'">${ALLCATS.map(c=>`<option>${c}</option>`).join('')}</select>
         <input id="flbs" type="number" placeholder="amount" value="80" />
         <select id="funit"><option value="lbs">lbs</option><option value="units">units</option></select>
-        <select id="fdead"><option>by end of day</option><option>by tonight</option><option>by 6pm</option><option>by noon</option><option>by tomorrow</option></select>
+        <select id="fdead" onchange="document.getElementById('fdeadother').style.display=this.value==='custom'?'block':'none'"><option>by end of day</option><option>by tonight</option><option>by 6pm</option><option>by noon</option><option>by tomorrow</option><option value="custom">Other (type a date/time)…</option></select>
       </div>
+      <input id="fcatother" placeholder="What is it? e.g. toothbrushes, blankets, diapers" style="display:none;margin-top:9px">
+      <input id="fdeadother" placeholder="Pick up by… e.g. June 30, or 5pm Friday" style="display:none;margin-top:9px">
       <button class="btn amber mt2" onclick="postFromForm()">＋ Post this surplus</button>`;
   }
 }
@@ -749,7 +742,11 @@ function doParse(){
 }
 function postFromParse(){parsed.items.forEach(it=>postListing(it.category,it.qty,it.unit,parsed.deadline));parsed=null;}
 function postFromForm(){
-  const c=document.getElementById('fcat').value, l=parseInt(document.getElementById('flbs').value||0), u=document.getElementById('funit').value, d=document.getElementById('fdead').value;
+  let c=document.getElementById('fcat').value;
+  const l=parseInt(document.getElementById('flbs').value||0), u=document.getElementById('funit').value;
+  let d=document.getElementById('fdead').value;
+  if(c==='Other'){const o=(document.getElementById('fcatother').value||'').trim(); if(o)c=o.charAt(0).toUpperCase()+o.slice(1); }
+  if(d==='custom'){let o=(document.getElementById('fdeadother').value||'').trim(); if(o&&!/^(by|in)\b/i.test(o))o='by '+o; d=o||'by end of day'; }
   if(!l||l<1){toast("Enter an amount");return;}
   postListing(c,l,u,d);
 }
@@ -1191,11 +1188,10 @@ function renderCity(){
       </p>
     </div>
     <div class="city-col city-section">
-      <div class="city-sHead"><h2>Need across America.</h2><div class="meta">All 3,141 U.S. counties · hover for details</div></div>
+      <div class="city-sHead"><h2>Need across America.</h2><div class="meta">Average need score by state, from 3,141 counties</div></div>
       <div class="city-mapWrap"><div id="citymap"></div>
-        <div class="city-tip" id="cityTip"></div>
         <div class="city-legend">
-          <div class="lt">Need score · by county</div>
+          <div class="lt">Avg need score · by state</div>
           <div class="scale"><span class="sl">Lower</span><div class="bar"></div><span class="sl">Higher</span></div>
         </div></div>
     </div>
@@ -1246,92 +1242,35 @@ function renderCityWire(items){
     el.appendChild(row);
   });
 }
-let USTOPO_CACHE=null;
-async function initCityMap(){
+function initCityMap(){
   const c=document.getElementById('citymap');if(!c)return;
   if(cmap){try{cmap.remove();}catch(e){}cmap=null;}
-  c.innerHTML='<div class="city-loading">Plotting 3,141 counties…</div>';
-  // Need D3 + topojson loaded; otherwise fall back to the CSS tile map
-  if(typeof d3==='undefined'||typeof topojson==='undefined'){return cityTileFallback(c);}
-  // Load the county topology (sibling file first, then CDN)
-  if(!USTOPO_CACHE){
-    const urls=['./us-counties.json','https://cdn.jsdelivr.net/npm/us-atlas@3/counties-albers-10m.json'];
-    let data=null;
-    for(const u of urls){
-      try{const r=await fetch(u); if(r.ok){data=await r.json(); break;}}catch(e){}
-    }
-    if(!data) return cityTileFallback(c);
-    USTOPO_CACHE=data;
-  }
-  const topo=USTOPO_CACHE;
   c.innerHTML='';
-  // Build FIPS → need score lookup from AREA_NEED (populated by loadNeed at boot)
-  const fipsScore={};
-  Object.keys(AREA_NEED).forEach(k=>{
-    if(k.startsWith('fips:')){const f=k.slice(5).padStart(5,'0');fipsScore[f]=AREA_NEED[k];}
-  });
-  // Build SVG
-  const svg=d3.select(c).append('svg')
-    .attr('viewBox','0 0 975 610')
-    .attr('preserveAspectRatio','xMidYMid meet');
-  const counties=topojson.feature(topo,topo.objects.counties);
-  const statesMesh=topojson.mesh(topo,topo.objects.states,(a,b)=>a!==b);
-  const path=d3.geoPath();
-  const tip=document.getElementById('cityTip');
-  const wrap=c.parentElement;
-  // Counties (staggered fade-in)
-  svg.append('g').selectAll('path.county')
-    .data(counties.features)
-    .join('path')
-    .attr('class','county')
-    .attr('d',path)
-    .attr('fill',d=>{
-      const fips=String(d.id).padStart(5,'0');
-      const s=fipsScore[fips];
-      return s===undefined?'#ebe6d8':cityHeatColor(s);
-    })
-    .style('opacity',0)
-    .on('mouseenter',function(event,d){
-      const fips=String(d.id).padStart(5,'0');
-      const s=fipsScore[fips];
-      const name=(d.properties&&d.properties.name)||'Unknown';
-      if(tip){
-        tip.innerHTML=`<b>${name} County</b><span class="num">${s!==undefined?'Need score '+s:'No data'}</span>`;
-        tip.style.display='block';
-      }
-    })
-    .on('mousemove',function(event){
-      if(!tip||!wrap) return;
-      const r=wrap.getBoundingClientRect();
-      let x=event.clientX-r.left+14, y=event.clientY-r.top+14;
-      // Keep tooltip inside the map
-      const tw=tip.offsetWidth, th=tip.offsetHeight;
-      if(x+tw>r.width-8) x=event.clientX-r.left-tw-10;
-      if(y+th>r.height-8) y=event.clientY-r.top-th-10;
-      tip.style.left=x+'px'; tip.style.top=y+'px';
-    })
-    .on('mouseleave',function(){
-      if(tip) tip.style.display='none';
-    })
-    .transition()
-    .delay(()=>Math.random()*700)
-    .duration(650)
-    .style('opacity',1);
-  // Safety: when the mouse leaves the map entirely, hide the tooltip no matter what
-  svg.on('mouseleave',()=>{ if(tip) tip.style.display='none'; });
-  // State borders (drawn on top, fade in after counties)
-  svg.append('path')
-    .datum(statesMesh)
-    .attr('d',path)
-    .attr('fill','none')
-    .attr('stroke','rgba(22,27,23,0.55)')
-    .attr('stroke-width',0.75)
-    .attr('stroke-linejoin','round')
-    .style('opacity',0)
-    .transition()
-    .delay(700)
-    .duration(500)
-    .style('opacity',1);
+  let map;
+  try{
+    map=L.map(c,{zoomControl:false,attributionControl:false,minZoom:3,maxZoom:6,scrollWheelZoom:false,dragging:true}).setView([37.8,-96],4);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png',{attribution:''}).addTo(map);
+  }catch(e){ return cityTileFallback(c); }
+  cmap=map;
+  const urls=['https://cdn.jsdelivr.net/gh/PublicaMundi/MappingAPI@master/data/geojson/us-states.geojson','https://raw.githubusercontent.com/PublicaMundi/MappingAPI/master/data/geojson/us-states.geojson'];
+  (async()=>{
+    for(const u of urls){
+      try{
+        const r=await fetch(u); if(!r.ok) continue;
+        const geo=await r.json();
+        L.geoJSON(geo,{
+          style:f=>{const ab=NAME2ABBR[f.properties.name];const d=ab&&STATE_AVG[ab];
+            return {fillColor:d?stateCol(d[0]):'#e7e4da',fillOpacity:.92,color:'#fbf9f2',weight:1.2};},
+          onEachFeature:(f,layer)=>{const ab=NAME2ABBR[f.properties.name];const d=ab&&STATE_AVG[ab];
+            layer.on('mouseover',()=>layer.setStyle({weight:2.6,color:'#ffffff'}));
+            layer.on('mouseout',()=>layer.setStyle({weight:1.2,color:'#fbf9f2'}));
+            if(d)layer.bindTooltip(`<b>${f.properties.name}</b> · avg need ${d[0]} · ${d[1]} counties`,{sticky:true});}
+        }).addTo(map);
+        return;
+      }catch(e){}
+    }
+    try{map.remove();}catch(e){} cmap=null; cityTileFallback(c); // CDN unreachable -> tile fallback
+  })();
 }
 function cityTileFallback(c){
   const W=11,H=8,cell=100;
@@ -1354,13 +1293,7 @@ async function loadNeed(){
   for(const f of ['need_index.min.json','need_index.json']){
     try{const r=await fetch(f,{cache:'no-store'});if(!r.ok)continue;const j=await r.json();
       if(j.areas){
-        j.areas.forEach(a=>{
-          if(typeof a.need_score!=='number') return;
-          // NJ-keyed by area name (used by the rest of the app for shelter scoring)
-          if(a.state==='NJ' && a.area) AREA_NEED[a.area]=a.need_score;
-          // ALL counties keyed by FIPS — required by the national choropleth in City view
-          if(a.fips) AREA_NEED['fips:'+String(a.fips).padStart(5,'0')]=a.need_score;
-        });
+        j.areas.forEach(a=>{if(a.state==='NJ'&&a.area&&typeof a.need_score==='number')AREA_NEED[a.area]=a.need_score;});
         CITY_ALL=j.areas;
         const g={}; j.areas.forEach(a=>{(g[a.state]=g[a.state]||[]).push(a.need_score);});
         CITY_STATES=Object.keys(g).map(s=>({state:s,score:Math.round(g[s].reduce((x,y)=>x+y,0)/g[s].length),count:g[s].length}));
