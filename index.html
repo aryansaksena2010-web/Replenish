@@ -1,0 +1,1404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Replenish — Rescue good food, feed your neighbors</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+<style>
+/* ================================================================
+   Replenish — editorial system
+   All class names preserved; only visual values restyled.
+   ================================================================ */
+:root{
+  --bg:#f5f2e8; --surface:#fbf9f2; --paper:#fefcf6;
+  --ink:#161b17; --ink2:#3d4842;
+  --muted:#7a847e; --faint:#b1b8b3;
+  --line:#e4dfd1; --line2:#cfc9b5;
+  --green:#0d6644; --green-d:#084a30; --green-soft:#e3ede7; --green-tint:#eef3ec;
+  --amber:#b86a2c; --amber-soft:#efe5d4; --amber-d:#8e4f1d;
+  --blue:#3d6585; --blue-soft:#e3ebf0;
+  --red:#a83232; --red-soft:#eedcd9;
+  --gold:#a3852e; --gold-soft:#ece5d0;
+  --shadow-sm:0 1px 0 rgba(22,27,23,.03);
+  --shadow:0 1px 3px rgba(22,27,23,.05),0 8px 24px -14px rgba(22,27,23,.14);
+  --shadow-lg:0 2px 6px rgba(22,27,23,.06),0 28px 56px -22px rgba(22,27,23,.22);
+  --r:10px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased;font-optical-sizing:auto;font-feature-settings:"kern","liga","ss01";height:100%;overflow:hidden}
+h1,h2,h3,.section-h,.vq,.card-title{font-feature-settings:"ss01";letter-spacing:-.02em}
+button{font-family:inherit}
+.hidden{display:none!important}
+.num{font-variant-numeric:tabular-nums lining-nums}
+::-webkit-scrollbar{width:6px;height:6px}::-webkit-scrollbar-thumb{background:var(--line2);border-radius:6px}
+
+/* ===== ROLE PICKER ===== */
+.picker{position:fixed;inset:0;z-index:2000;display:grid;place-items:center;padding:24px;
+  background:var(--bg);overflow:auto}
+.picker-inner{width:100%;max-width:980px;text-align:left;padding:40px 28px}
+.plogo{width:44px;height:44px;border-radius:10px;display:grid;place-items:center;margin:0 0 32px;
+  background:var(--green)}
+.plogo svg{width:24px;height:24px}
+.picker h1{font-family:'Fraunces',serif;font-weight:400;font-size:64px;letter-spacing:-.025em;line-height:1;color:var(--ink)}
+.picker .lede{font-size:17px;color:var(--ink2);max-width:580px;margin:18px 0 0;line-height:1.55;font-weight:400}
+.roles{display:grid;grid-template-columns:repeat(4,1fr);gap:0;margin-top:48px;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.role-card{background:transparent;border:none;border-right:1px solid var(--line);padding:32px 28px 30px;cursor:pointer;
+  text-align:left;transition:background .18s;position:relative}
+.role-card:last-child{border-right:none}
+.role-card:hover{background:var(--paper)}
+.role-card .emoji{width:auto;height:auto;border-radius:0;background:transparent!important;display:block;font-size:0;color:transparent;margin:0 0 22px;padding:0}
+.role-card.store .emoji::before{content:"01 · For grocers"}
+.role-card.pantry .emoji::before{content:"02 · For food banks"}
+.role-card.driver .emoji::before{content:"03 · For volunteers"}
+.role-card.city .emoji::before{content:"04 · For the public"}
+.role-card .emoji::before{font-size:10.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);display:block;font-family:'Plus Jakarta Sans',sans-serif;font-variant-numeric:tabular-nums}
+.role-card h3{font-family:'Fraunces',serif;font-weight:500;font-size:26px;letter-spacing:-.02em;margin-bottom:11px;color:var(--ink);line-height:1.15}
+.role-card p{font-size:14px;color:var(--ink2);line-height:1.6;font-weight:400}
+.role-card .go{margin-top:20px;font-size:13px;font-weight:600;color:var(--green-d);display:inline-flex;align-items:center;gap:6px;letter-spacing:.01em;border-bottom:1px solid var(--green-d);padding-bottom:2px}
+.picker .foot{font-size:12.5px;color:var(--muted);margin-top:36px;font-weight:400;letter-spacing:.01em}
+.picker .foot a{color:var(--ink2);text-decoration:underline;text-underline-offset:3px}
+
+/* ===== APP SHELL ===== */
+#app{height:100%;display:flex;flex-direction:column}
+.bar{display:flex;align-items:center;justify-content:space-between;padding:14px 32px;background:var(--paper);border-bottom:1px solid var(--line);flex-shrink:0;z-index:50}
+.bar .brand{display:flex;align-items:center;gap:11px}
+.bar .mark{width:28px;height:28px;border-radius:7px;display:grid;place-items:center;background:var(--green)}
+.bar .mark svg{width:16px;height:16px}
+.bar h1{font-family:'Fraunces',serif;font-weight:500;font-size:17px;letter-spacing:-.01em}
+.switch{display:flex;border:1px solid var(--line);border-radius:8px;background:var(--paper);padding:3px;gap:1px}
+.switch button{border:none;background:transparent;color:var(--muted);font-weight:500;font-size:12.5px;padding:7px 14px;border-radius:6px;cursor:pointer;transition:.15s;display:flex;align-items:center;gap:6px;letter-spacing:.01em}
+.switch button>span{font-weight:500}
+.switch button.on{background:var(--ink);color:#fff}
+.switch button:not(.on):hover{color:var(--ink)}
+.who{display:flex;align-items:center;gap:10px}
+.who .ava{width:30px;height:30px;border-radius:7px;display:grid;place-items:center;font-weight:600;font-size:12.5px;color:#fff;letter-spacing:.01em}
+.who .meta{text-align:right} .who .meta .n{font-weight:600;font-size:13px;line-height:1.2;letter-spacing:-.005em} .who .meta .s{font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.who .exit{margin-left:4px;border:1px solid var(--line);background:transparent;color:var(--muted);border-radius:7px;width:30px;height:30px;cursor:pointer;font-size:14px}
+.who .exit:hover{color:var(--ink);border-color:var(--line2)}
+
+.view{flex:1;overflow:hidden;display:flex}
+.col{flex:1;overflow-y:auto;padding:36px 40px}
+.col.narrow{max-width:600px;margin:0 auto}
+.section-h{font-family:'Fraunces',serif;font-weight:500;font-size:36px;letter-spacing:-.025em;color:var(--ink);line-height:1.05}
+.section-sub{font-size:14.5px;color:var(--ink2);margin-top:10px;line-height:1.6;max-width:680px;font-weight:400}
+.section-sub b{font-weight:600;color:var(--ink)}
+
+.card{background:var(--paper);border:1px solid var(--line);border-radius:var(--r);box-shadow:none}
+.pad{padding:24px}
+.mt{margin-top:28px}.mt2{margin-top:14px}
+
+.label{font-size:10.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:12px;display:block}
+.tabs{display:flex;gap:0;margin-bottom:20px;border-bottom:1px solid var(--line)}
+.tab{flex:1;border:none;background:transparent;border-radius:0;padding:13px 6px 13px;font-weight:500;font-size:13px;color:var(--muted);cursor:pointer;transition:.15s;display:flex;align-items:center;justify-content:center;gap:8px;border-bottom:2px solid transparent;margin-bottom:-1px;letter-spacing:.01em}
+.tab.on{border-bottom-color:var(--ink);color:var(--ink);background:transparent}
+.tab:hover:not(.on){color:var(--ink2)}
+textarea,input,select{font-family:inherit;width:100%;border:1px solid var(--line2);border-radius:7px;padding:12px 14px;font-size:14px;color:var(--ink);background:var(--paper);transition:.15s;outline:none;font-feature-settings:"kern","liga"}
+textarea:focus,input:focus,select:focus{border-color:var(--ink);background:#fff}
+textarea{resize:none;min-height:90px;line-height:1.55}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.row3{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:12px}
+
+.btn{border:none;cursor:pointer;font-weight:500;font-size:14px;padding:13px 20px;border-radius:7px;background:var(--ink);color:#fff;width:100%;transition:.15s;display:flex;align-items:center;justify-content:center;gap:9px;letter-spacing:.01em;box-shadow:none}
+.btn:hover{background:var(--green-d);transform:none}
+.btn.sec{background:transparent;color:var(--ink);border:1px solid var(--line2);box-shadow:none}
+.btn.sec:hover{background:var(--green-tint);border-color:var(--green-d);color:var(--green-d)}
+.btn.amber{background:var(--amber)}.btn.amber:hover{background:var(--amber-d)}
+.btn.sm{padding:9px 16px;font-size:12.5px;width:auto;border-radius:6px}
+.btn.blue{background:var(--blue)}.btn.blue:hover{background:#2e4f6b}
+
+/* parse preview */
+.parsed{background:var(--green-tint);border:1px solid var(--green-soft);border-radius:8px;padding:18px;margin-top:16px}
+.parsed .pl{font-size:10.5px;color:var(--green-d);font-weight:700;display:flex;align-items:center;gap:7px;margin-bottom:14px;letter-spacing:.14em;text-transform:uppercase}
+.pchips{display:flex;gap:0;flex-wrap:wrap;border-top:1px solid var(--green-soft);border-bottom:1px solid var(--green-soft);background:#fff}
+.pchip{background:transparent;border:none;border-right:1px solid var(--green-soft);border-radius:0;padding:11px 16px;font-size:13.5px;flex:1;min-width:120px}
+.pchip:last-child{border-right:none}
+.pchip b{font-weight:600;font-family:'Fraunces',serif;font-size:16px;display:block;margin-top:2px}
+.pchip .k{font-size:9.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.14em;display:block;font-weight:700}
+
+/* chips / needs */
+.needchips{display:flex;flex-wrap:wrap;gap:6px}
+.nchip{border:1px solid var(--line2);background:var(--paper);border-radius:6px;padding:8px 12px;font-size:13px;font-weight:500;color:var(--ink2);cursor:pointer;transition:.15s;display:flex;align-items:center;gap:7px}
+.nchip:hover{border-color:var(--ink2)}
+.nchip.on{border-color:var(--ink);background:var(--ink);color:#fff}
+.nchip .x{opacity:.6;font-size:11px}
+
+/* listing / opportunity items */
+.item{border:1px solid var(--line);border-radius:8px;padding:18px;margin-bottom:10px;background:var(--paper);transition:.15s}
+.item:hover{border-color:var(--line2)}
+.item .ih{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.item .title{font-weight:600;font-size:15px;display:flex;align-items:center;gap:10px;letter-spacing:-.005em}
+.item .meta{font-size:12.5px;color:var(--muted);margin-top:5px;display:flex;gap:14px;flex-wrap:wrap;font-variant-numeric:tabular-nums}
+.item .meta b{color:var(--ink2);font-weight:600}
+.cat-pill{font-size:10.5px;font-weight:700;padding:3px 9px;border-radius:3px;background:transparent;color:var(--amber-d);border:1px solid var(--amber);white-space:nowrap;letter-spacing:.04em}
+.badge{font-size:10px;font-weight:700;padding:3px 8px;border-radius:3px;white-space:nowrap;display:inline-flex;align-items:center;gap:5px;letter-spacing:.08em;text-transform:uppercase}
+.badge.prio{background:var(--red);color:#fff}
+.badge.med{background:var(--gold);color:#fff}
+.badge.low{background:var(--green-d);color:#fff}
+.badge.time{background:transparent;color:var(--ink2);border:1px solid var(--line2)}
+.badge.status{background:transparent;color:var(--muted);border:1px solid var(--line2)}
+.barline{height:3px;border-radius:2px;background:var(--line);overflow:hidden;margin-top:14px}
+.barline i{display:block;height:100%;background:var(--green-d);border-radius:2px;transition:width .5s}
+.item .foot{display:flex;align-items:center;gap:10px;margin-top:14px}
+.claimbox{display:flex;align-items:center;border:1px solid var(--line2);border-radius:6px;overflow:hidden;background:var(--paper)}
+.claimbox button{width:34px;height:38px;border:none;background:transparent;color:var(--ink);cursor:pointer;font-size:16px}
+.claimbox button:hover{background:var(--bg)}
+.claimbox input{width:80px;height:38px;border:none;text-align:center;font-weight:600;font-size:14px;border-radius:0;background:transparent}
+.timeline{margin-top:14px;display:flex;gap:0}
+.tl{flex:1;text-align:center;position:relative}
+.tl .d{width:10px;height:10px;border-radius:50%;background:var(--line2);margin:0 auto 7px;border:2px solid var(--paper);position:relative;z-index:2}
+.tl.done .d{background:var(--green-d)} .tl.act .d{background:var(--ink);box-shadow:0 0 0 3px var(--line)}
+.tl::before{content:"";position:absolute;top:6px;left:-50%;width:100%;height:1px;background:var(--line2)}
+.tl:first-child::before{display:none}
+.tl.done::before,.tl.act::before{background:var(--green-d)}
+.tl .lab{font-size:10.5px;color:var(--muted);font-weight:500;letter-spacing:.01em}
+.tl.done .lab,.tl.act .lab{color:var(--ink)}
+
+.empty{text-align:center;padding:56px 20px;color:var(--muted)}
+.empty .e{font-size:22px;margin-bottom:14px;opacity:.5}
+.empty p{font-size:13.5px;max-width:320px;margin:0 auto;line-height:1.6;color:var(--muted)}
+
+/* split (driver + pantry) */
+.driver-wrap,.split-wrap{display:flex;width:100%;height:100%}
+.driver-list{width:460px;flex-shrink:0;overflow-y:auto;padding:36px 32px;border-right:1px solid var(--line);background:var(--bg)}
+.split-list{width:560px;flex-shrink:0;overflow-y:auto;padding:36px 36px;border-right:1px solid var(--line);background:var(--bg)}
+#dmap,#pmap,#smap{flex:1;height:100%;min-height:300px;background:var(--paper)}
+
+/* impact strip — editorial inline numbers, not cards */
+.impact-strip{display:flex;gap:0;margin-top:28px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:18px 0}
+.ip{flex:1;background:transparent;border:none;border-right:1px solid var(--line);border-radius:0;padding:0 22px}
+.ip:first-child{padding-left:0}
+.ip:last-child{border-right:none;padding-right:0}
+.ipn{font-family:'Fraunces',serif;font-weight:500;font-size:30px;color:var(--ink);line-height:1;letter-spacing:-.02em;font-variant-numeric:tabular-nums lining-nums}
+.ipl{font-size:10.5px;color:var(--muted);margin-top:8px;font-weight:700;letter-spacing:.14em;text-transform:uppercase}
+
+.card-title{font-family:'Fraunces',serif;font-weight:500;font-size:22px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;letter-spacing:-.02em;color:var(--ink)}
+.need-counter{font-size:10px;font-weight:700;color:var(--ink2);background:transparent;padding:3px 9px;border-radius:3px;margin-left:auto;border:1px solid var(--line2);letter-spacing:.08em;font-variant-numeric:tabular-nums}
+.card-desc{font-size:13.5px;color:var(--ink2);line-height:1.65;margin:10px 0 18px;max-width:580px;font-weight:400}
+.card-desc b{color:var(--ink);font-weight:600}
+.cat-ic{width:42px;height:42px;border-radius:7px;background:var(--bg);border:1px solid var(--line);display:grid;place-items:center;font-size:20px;flex-shrink:0}
+.item.rich{padding:18px}
+.claimed-row{margin-top:14px;font-size:13px;color:var(--green-d);font-weight:600;background:transparent;padding:11px 13px;border-radius:6px;display:flex;align-items:center;gap:8px;border:1px solid var(--green-soft);background:var(--green-tint)}
+.item.opp{cursor:pointer;transition:.15s}
+.item.opp:hover{border-color:var(--ink2)}
+.item.opp.sel{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink);background:var(--paper)}
+.tap-hint{margin-top:12px;font-size:10.5px;font-weight:700;color:var(--faint);text-align:center;letter-spacing:.14em;text-transform:uppercase}
+.item.opp.sel .tap-hint{color:var(--ink)}
+
+/* verification */
+.voverlay{position:fixed;inset:0;z-index:1900;display:grid;place-items:center;padding:24px;background:var(--bg);overflow:auto}
+.vcard{width:100%;max-width:480px;background:var(--paper);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);padding:38px 36px 30px}
+.vlogo{width:42px;height:42px;border-radius:9px;display:grid;place-items:center;margin:0 auto 22px;font-size:20px;background:var(--ink)!important;color:#fff;box-shadow:none}
+.vcard h1{font-family:'Fraunces',serif;font-weight:500;font-size:28px;text-align:left;letter-spacing:-.02em;line-height:1.15}
+.vcard .lede{font-size:14px;color:var(--ink2);text-align:left;margin:11px 0 0;max-width:none;line-height:1.6}
+.vform{margin:26px 0 6px;display:flex;flex-direction:column;gap:14px}
+.vf label{display:block;font-size:10.5px;font-weight:700;color:var(--muted);margin-bottom:8px;letter-spacing:.14em;text-transform:uppercase}
+.vfile{display:flex;align-items:center;gap:10px;border:1px dashed var(--line2);border-radius:7px;padding:14px 16px;cursor:pointer;color:var(--muted);font-size:13.5px;transition:.15s;background:var(--paper)}
+.vfile:hover{border-color:var(--ink);background:var(--bg);color:var(--ink)}
+.vsub{width:100%;margin-top:8px}
+.vsub:disabled{opacity:.85;cursor:default;transform:none}
+.vrow{text-align:left;margin-top:18px}
+.vrow a{color:var(--muted);font-weight:500;font-size:12.5px;text-decoration:underline;text-underline-offset:3px}
+.vrow a:hover{color:var(--ink)}
+.vfoot{font-size:11px;color:var(--muted);text-align:left;margin-top:18px;line-height:1.55;letter-spacing:.01em;padding-top:18px;border-top:1px solid var(--line)}
+.vchk{font-size:11px;vertical-align:middle}
+.trust-note{display:flex;align-items:center;gap:10px;background:transparent;border:1px solid var(--green-soft);border-radius:7px;padding:12px 14px;font-size:12.5px;color:var(--green-d);font-weight:500;margin-top:8px}
+.vtop{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px}
+.vlogo.sm{width:36px;height:36px;border-radius:8px;margin:0;font-size:17px;box-shadow:none}
+.vstepn{font-size:10.5px;font-weight:700;color:var(--muted);letter-spacing:.14em;text-transform:uppercase;font-variant-numeric:tabular-nums}
+.vprog{height:2px;border-radius:0;background:var(--line);overflow:hidden;margin-bottom:28px}
+.vprog i{display:block;height:100%;background:var(--ink);border-radius:0;transition:width .35s cubic-bezier(.2,.8,.2,1)}
+.vcard .vq{font-family:'Fraunces',serif;font-weight:500;font-size:26px;letter-spacing:-.02em;line-height:1.2;text-align:left;color:var(--ink)}
+.vhelp{font-size:13.5px;color:var(--ink2);line-height:1.6;margin-top:10px;font-weight:400}
+.vfield{margin:22px 0 6px}
+.vbtns{display:flex;gap:10px;margin-top:8px}
+.vhalf{flex:1}
+.vspin{width:38px;height:38px;border-radius:50%;border:2px solid var(--line);border-top-color:var(--ink);margin:0 auto;animation:vspin .8s linear infinite}
+@keyframes vspin{to{transform:rotate(360deg)}}
+.verr{display:none;color:var(--red);font-size:12px;font-weight:500;margin-top:10px}
+.verr.show{display:block}
+.vfield input.err,.vfield .vfile.err{border-color:var(--red)}
+.vcard.shake{animation:shake .42s cubic-bezier(.36,.07,.19,.97)}
+@keyframes shake{10%,90%{transform:translateX(-1px)}20%,80%{transform:translateX(2px)}30%,50%,70%{transform:translateX(-5px)}40%,60%{transform:translateX(5px)}}
+.vrow.nudge a{background:var(--green-tint);color:var(--green-d);padding:7px 13px;border-radius:6px;display:inline-block;text-decoration:none}
+.sortbar{display:flex;gap:0;margin:18px 0 22px;border-bottom:1px solid var(--line)}
+.sortbar button{flex:1;border:none;background:transparent;border-radius:0;padding:10px 4px;font-weight:500;font-size:12.5px;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;letter-spacing:.01em;transition:.15s}
+.sortbar button.on{border-bottom-color:var(--ink);background:transparent;color:var(--ink)}
+.sortbar button:hover:not(.on){color:var(--ink2)}
+.rating{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.rating b{color:var(--ink);font-weight:600}
+
+/* receipt modal */
+.modal{position:fixed;inset:0;z-index:1500;background:rgba(22,27,23,.45);display:grid;place-items:center;padding:24px;opacity:0;visibility:hidden;transition:.25s}
+.modal.show{opacity:1;visibility:visible}
+.modal .sheet{width:100%;max-width:440px;background:var(--paper);border:1px solid var(--line2);border-radius:var(--r);box-shadow:var(--shadow-lg);padding:30px 32px;transform:translateY(14px);transition:.25s}
+.modal.show .sheet{transform:translateY(0)}
+.receipt .rh{display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--line);padding-bottom:18px;margin-bottom:18px}
+.receipt h3{font-family:'Fraunces',serif;font-size:22px;font-weight:500;letter-spacing:-.02em}
+.receipt .line{display:flex;justify-content:space-between;font-size:13.5px;padding:9px 0;color:var(--ink2);font-variant-numeric:tabular-nums}
+.receipt .line.tot{border-top:1px solid var(--line);margin-top:10px;padding-top:14px;font-weight:600;font-size:15px;color:var(--ink)}
+.receipt .note{font-size:11px;color:var(--muted);margin-top:18px;line-height:1.65;background:var(--bg);padding:14px;border-radius:6px;border:1px solid var(--line);font-weight:400}
+
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(16px);z-index:1800;background:var(--ink);color:#fff;border-radius:7px;padding:12px 20px;box-shadow:var(--shadow-lg);font-size:13.5px;font-weight:500;opacity:0;transition:.3s;display:flex;gap:10px;align-items:center;pointer-events:none;letter-spacing:.01em}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast .ic{color:#7fc098}
+
+/* ============================================================
+   CITY DASHBOARD VIEW
+   ============================================================ */
+.city-wrap{flex:1;overflow:auto;display:flex;flex-direction:column}
+.city-col{max-width:1180px;margin:0 auto;width:100%;padding:0 48px}
+.city-hero{padding:56px 0 48px;border-bottom:1px solid var(--line)}
+.city-crumb{font-size:10.5px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:18px}
+.city-title{font-family:'Fraunces',serif;font-size:52px;font-weight:400;line-height:1;color:var(--ink);margin-bottom:6px;letter-spacing:-.025em}
+.city-geo{font-size:17px;font-style:italic;font-weight:300;color:var(--ink2);font-family:'Fraunces',serif;margin-bottom:42px}
+.city-geo .sep{color:var(--faint);margin:0 9px;font-style:normal}
+.city-heroStat{display:flex;align-items:baseline;gap:22px;margin-bottom:22px;flex-wrap:wrap}
+.city-heroNum{font-family:'Fraunces',serif;font-weight:400;font-size:128px;line-height:.9;color:var(--ink);letter-spacing:-.04em;font-variant-numeric:tabular-nums lining-nums}
+.city-heroLab{font-family:'Fraunces',serif;font-style:italic;font-weight:400;font-size:30px;color:var(--ink2);line-height:1.15;max-width:380px}
+.city-heroProse{font-size:16px;line-height:1.65;color:var(--ink2);max-width:720px}
+.city-heroProse b{color:var(--ink);font-weight:600}
+.city-heroProse .accent{color:var(--green-d);font-weight:600}
+.city-section{padding:44px 0;border-bottom:1px solid var(--line)}
+.city-sHead{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:24px}
+.city-sHead h2{font-family:'Fraunces',serif;font-size:24px;font-weight:500;color:var(--ink);letter-spacing:-.02em}
+.city-sHead .meta{font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums;letter-spacing:.02em}
+.city-mapWrap{background:var(--paper);border:1px solid var(--line);height:500px;position:relative;overflow:hidden}
+#citymap{position:absolute;inset:0}
+#citymap svg{width:100%;height:100%;display:block;background:#fbf9f2}
+#citymap path.county{cursor:pointer;stroke:rgba(22,27,23,0.10);stroke-width:0.2;transition:stroke .1s,stroke-width .1s}
+#citymap path.county:hover{stroke:#161b17;stroke-width:0.9}
+.city-tip{position:absolute;display:none;background:#fbf9f2;border:1px solid var(--line2);padding:9px 13px;font-size:12.5px;border-radius:4px;pointer-events:none;box-shadow:var(--shadow);z-index:600;white-space:nowrap;line-height:1.45}
+.city-tip b{font-family:'Fraunces',serif;font-weight:500;font-size:13.5px;color:var(--ink);display:block;margin-bottom:1px}
+.city-tip .num{color:var(--muted);font-variant-numeric:tabular-nums;font-size:11.5px;letter-spacing:.01em}
+.city-loading{display:grid;place-items:center;width:100%;height:100%;color:var(--muted);font-size:13px;font-family:'Fraunces',serif;font-style:italic;font-weight:300}
+.city-legend{position:absolute;top:12px;right:12px;z-index:500;background:rgba(251,249,242,.96);border:1px solid var(--line);padding:11px 13px;font-size:10.5px}
+.city-legend .lt{font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-size:9.5px;margin-bottom:7px}
+.city-legend .scale{display:flex;align-items:center;gap:7px;margin-bottom:9px}
+.city-legend .bar{width:110px;height:5px;background:linear-gradient(90deg,#7ca87a,#d4b34c,#c46d2e,#a83232)}
+.city-legend .sl{font-size:9.5px;color:var(--ink2);font-variant-numeric:tabular-nums}
+.city-legend .keys{display:flex;flex-direction:column;gap:4px;font-size:10px;color:var(--ink2)}
+.city-legend .keyrow{display:flex;align-items:center;gap:7px}
+.city-legend .kd{width:8px;height:8px;border-radius:50%}
+.city-duo{display:grid;grid-template-columns:1.05fr 1fr;gap:48px}
+.city-duo h2{margin-bottom:6px}
+.city-subhead{font-family:'Fraunces',serif;font-style:italic;font-size:13px;color:var(--muted);margin-bottom:20px;font-weight:300}
+.city-wire{display:flex;flex-direction:column}
+.city-wireItem{display:grid;grid-template-columns:60px 1fr;gap:16px;padding:12px 0;border-top:1px solid var(--line);opacity:0;animation:wireIn .5s forwards}
+.city-wireItem:first-child{border-top:none}
+@keyframes wireIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+.city-wireItem.fresh{background:linear-gradient(90deg,rgba(13,102,68,.06),transparent 60%)}
+.city-wireTime{font-variant-numeric:tabular-nums;font-size:11px;color:var(--muted);font-weight:500;padding-top:1px;letter-spacing:.02em}
+.city-wireText{font-size:13px;color:var(--ink2);line-height:1.55}
+.city-wireText b{color:var(--ink);font-weight:600}
+.city-wireText .tag{display:inline-block;font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:1px 6px;border-radius:2px;margin-left:6px;vertical-align:1px}
+.city-wireText .tag.urgent{background:var(--red);color:#fff}
+.city-wireText .tag.confirmed{color:var(--green-d);border:1px solid var(--green-d);background:transparent}
+table.city-counties{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+table.city-counties thead th{text-align:left;font-size:9.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:var(--muted);padding:0 0 11px;border-bottom:1.5px solid var(--ink)}
+table.city-counties thead th.r{text-align:right}
+table.city-counties tbody td{padding:12px 0;border-bottom:1px solid var(--line);font-size:13.5px;color:var(--ink)}
+table.city-counties tbody td.r{text-align:right}
+table.city-counties tbody td.name{font-weight:600}
+table.city-counties .scoreCell{display:inline-flex;align-items:center;gap:8px}
+table.city-counties .scoreDot{width:7px;height:7px;border-radius:50%;display:inline-block}
+table.city-counties tbody tr:last-child td{border-bottom:none}
+table.city-counties .last{font-size:11.5px;color:var(--muted);font-style:italic;font-family:'Fraunces',serif;font-weight:300}
+.city-method{padding:44px 0 56px}
+.city-method h3{font-size:10.5px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:16px}
+.city-method p{font-size:13.5px;line-height:1.7;color:var(--ink2);max-width:780px;margin-bottom:16px}
+.city-method p b{color:var(--ink);font-weight:600}
+.city-method .closing{font-family:'Fraunces',serif;font-style:italic;font-weight:300;font-size:20px;color:var(--ink);margin-top:28px}
+.city-method .sources{display:flex;flex-wrap:wrap;gap:6px 22px;margin-top:14px;font-size:11px;color:var(--muted)}
+@media(max-width:980px){
+  .city-duo{grid-template-columns:1fr;gap:40px}
+  .city-heroNum{font-size:88px}
+  .city-heroLab{font-size:22px}
+  .city-heroStat{flex-direction:column;align-items:flex-start;gap:6px}
+  .city-mapWrap{height:420px}
+  .city-title{font-size:38px}
+  .city-col{padding:0 28px}
+}
+
+@media(max-width:920px){
+  .roles{grid-template-columns:1fr;border-left:none;border-right:none}
+  .role-card{border-right:none;border-bottom:1px solid var(--line)}
+  .role-card:last-child{border-bottom:none}
+  /* Stack the list above and the map below — keep map visible */
+  .driver-wrap,.split-wrap{flex-direction:column}
+  .driver-list,.split-list{width:100%;border-right:none;border-bottom:1px solid var(--line);padding:28px 24px;max-height:none}
+  #dmap,#pmap,#smap{display:block;width:100%;height:420px;min-height:420px;flex:none}
+  .row3,.row2{grid-template-columns:1fr}
+  .switch button span{display:none}
+  .picker h1{font-size:42px}
+  .section-h{font-size:26px}
+}
+</style>
+</head>
+<body>
+
+<!-- ============ ROLE PICKER ============ -->
+<div class="picker" id="picker">
+  <div class="picker-inner">
+    <div class="plogo"><svg viewBox="0 0 24 24" fill="none"><path d="M12 21c0-5 3-8 7-9-1 5-4 8-7 9Zm0 0c0-5-3-8-7-9 1 5 4 8 7 9Zm0-1V8" stroke="#fff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    <h1>Good food, rescued.</h1>
+    <p class="lede">Surplus food from grocers, routed to the neighborhoods that need it most.</p>
+    <div class="roles">
+      <div class="role-card store" onclick="startRole('store')">
+        <div class="emoji">🛒</div>
+        <h3>Grocery store</h3>
+        <p>Post surplus in seconds. We notify nearby food banks, send a volunteer, and hand you a tax receipt.</p>
+        <div class="go">Enter as a store →</div>
+      </div>
+      <div class="role-card pantry" onclick="startRole('pantry')">
+        <div class="emoji">🍽️</div>
+        <h3>Food bank</h3>
+        <p>Tell us what you need. Claim surplus nearby, with high-need areas first in line.</p>
+        <div class="go">Enter as a food bank →</div>
+      </div>
+      <div class="role-card driver" onclick="startRole('driver')">
+        <div class="emoji">🚐</div>
+        <h3>Volunteer driver</h3>
+        <p>See runs near you, ranked by need. Pick one up, drop it off, feed a family.</p>
+        <div class="go">Enter as a volunteer →</div>
+      </div>
+      <div class="role-card city" onclick="enter('city')">
+        <div class="emoji">🏛</div>
+        <h3>City view</h3>
+        <p>The whole network, live, mapped against where hunger runs highest.</p>
+        <div class="go">See the dashboard →</div>
+      </div>
+    </div>
+    <div class="foot">Every store, food bank, and driver is ID-verified before joining. &nbsp;·&nbsp; FutureHacks 2026 &nbsp;·&nbsp; <a href="#" onclick="resetDemo();return false">Reset demo data</a></div>
+  </div>
+</div>
+
+<div class="voverlay hidden" id="verify"></div>
+
+<!-- ============ APP ============ -->
+<div id="app" class="hidden">
+  <div class="bar">
+    <div class="brand">
+      <div class="mark"><svg viewBox="0 0 24 24" fill="none"><path d="M12 21c0-5 3-8 7-9-1 5-4 8-7 9Zm0 0c0-5-3-8-7-9 1 5 4 8 7 9Zm0-1V8" stroke="#fff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <h1>Replenish</h1>
+    </div>
+    <div class="switch" id="switch">
+      <button data-r="store" onclick="enter('store')">🛒 <span>Store</span></button>
+      <button data-r="pantry" onclick="enter('pantry')">🍽️ <span>Food bank</span></button>
+      <button data-r="driver" onclick="enter('driver')">🚐 <span>Driver</span></button>
+      <button data-r="city" onclick="enter('city')">🏛 <span>City</span></button>
+    </div>
+    <div class="who" id="who"></div>
+  </div>
+  <div class="view" id="view"></div>
+</div>
+
+<div class="modal" id="modal"><div class="sheet" id="modalBody"></div></div>
+<div class="toast" id="toast"><span class="ic">✓</span><span id="toastMsg"></span></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
+<script>
+/* ======================= REFERENCE DATA ======================= */
+const MILES=20, KM_RADIUS=MILES*1.60934, MPH=32;
+const CATS=[
+ {c:"Fruits",k:["fruit","banana","apple","orange","berr","grape","melon","peach","pear","mango","produce"]},
+ {c:"Vegetables",k:["vegetable","veggie","lettuce","carrot","tomato","potato","onion","green","salad","broccoli","pepper","cucumber","squash","produce"]},
+ {c:"Dairy",k:["milk","cheese","yogurt","yoghurt","dairy","butter","cream"]},
+ {c:"Bread & Bakery",k:["bread","bakery","bagel","pastr","muffin","roll","bun","cake","donut","doughnut","croissant","loaf"]},
+ {c:"Meat & Protein",k:["meat","chicken","beef","pork","turkey","fish","protein","sausage","ham"]},
+ {c:"Eggs",k:["egg"]},
+ {c:"Prepared Meals",k:["meal","prepared","deli","rotisserie","sandwich","cooked","hot food","soup"]},
+ {c:"Canned & Dry Goods",k:["can","rice","pasta","bean","dry","cereal","grain","flour","sauce"]},
+ {c:"Toiletries & Household",k:["toothbrush","toothpaste","soap","shampoo","deodorant","diaper","wipe","hygiene","toiletr","detergent","paper towel","toilet paper","tissue","sanitiz","razor","household","cleaning"]},
+ {c:"Other",k:[]},
+];
+const ALLCATS=CATS.map(x=>x.c);
+const CATICON={"Fruits":"🍎","Vegetables":"🥕","Dairy":"🥛","Bread & Bakery":"🍞","Meat & Protein":"🍗","Eggs":"🥚","Prepared Meals":"🍱","Canned & Dry Goods":"🥫","Toiletries & Household":"🧴","Other":"📦"};
+const unitLabel=(u,q)=>u==='units'?(q===1?'item':'items'):'lbs';
+const amtL=l=>`${l.lbs} ${unitLabel(l.unit,l.lbs)}`;
+const amtC=c=>{const l=DB.listings.find(x=>x.id===c.listingId);return `${c.lbs} ${unitLabel(l&&l.unit,c.lbs)}`;};
+const PANTRY_EIN={pa1:"22-3815540",pa2:"46-2031778",pa3:"21-0635413",pa4:"27-1908442",pa5:"22-2516979",pa6:"13-4204472",pa7:"45-0998123"};
+const FMV_PER_LB=1.75; // estimated grocery fair market value per lb (donation valuation)
+let smap=null, pmap=null;
+
+// Real county-level need scores from the Need Index model (fallback; need_index.min.json overrides at load)
+let AREA_NEED={"Cumberland County":34,"Cape May County":26,"Atlantic County":25,"Essex County":23,"Hudson County":21,"Camden County":20,"Mercer County":20,"Passaic County":20,"Salem County":18,"Ocean County":15,"Warren County":14,"Gloucester County":12,"Middlesex County":12,"Union County":12,"Bergen County":10,"Burlington County":10,"Monmouth County":10,"Sussex County":9,"Morris County":8,"Somerset County":8,"Hunterdon County":7};
+
+const DB={
+ stores:[
+  {id:"st1",name:"Acme Markets",area:"Springfield",lat:40.7045,lng:-74.3146},
+  {id:"st2",name:"Wegmans",area:"Woodbridge",lat:40.5576,lng:-74.2846},
+  {id:"st3",name:"ShopRite",area:"Bloomfield",lat:40.8068,lng:-74.1854},
+  {id:"st4",name:"Costco",area:"Union",lat:40.6976,lng:-74.2632},
+ ],
+ pantries:[
+  {id:"pa1",name:"Newark Community Food Bank",area:"Newark",county:"Essex County",lat:40.7357,lng:-74.1724,needs:["Fruits","Vegetables","Dairy","Eggs","Bread & Bakery"]},
+  {id:"pa2",name:"Jersey City Helping Hands",area:"Jersey City",county:"Hudson County",lat:40.7178,lng:-74.0431,needs:["Vegetables","Dairy","Meat & Protein"]},
+  {id:"pa3",name:"Paterson Family Pantry",area:"Paterson",county:"Passaic County",lat:40.9168,lng:-74.1718,needs:["Vegetables","Bread & Bakery","Dairy"]},
+  {id:"pa4",name:"Elizabeth Hope Center",area:"Elizabeth",county:"Union County",lat:40.6639,lng:-74.2107,needs:["Fruits","Vegetables","Eggs"]},
+  {id:"pa5",name:"New Brunswick Pantry",area:"New Brunswick",county:"Middlesex County",lat:40.4862,lng:-74.4518,needs:["Vegetables","Eggs","Bread & Bakery"]},
+  {id:"pa6",name:"Morristown Neighbor Pantry",area:"Morristown",county:"Morris County",lat:40.7968,lng:-74.4815,needs:["Fruits","Dairy"]},
+  {id:"pa7",name:"Warren Food Closet",area:"Warren",county:"Somerset County",lat:40.6276,lng:-74.5132,needs:["Bread & Bakery","Canned & Dry Goods"]},
+ ],
+ drivers:[
+  {id:"dr1",name:"Maya Reyes",lat:40.74,lng:-74.21,rating:4.9,runs:38},
+  {id:"dr2",name:"James Tran",lat:40.58,lng:-74.33,rating:4.8,runs:21},
+  {id:"dr3",name:"Priya Shah",lat:40.82,lng:-74.17,rating:5.0,runs:54},
+ ],
+ listings:[],
+ claims:[],
+ strikes:[],
+};
+let LSEQ=1, CSEQ=1, SSEQ=100, PSEQ=100, DSEQ=100;
+const me={role:null,id:null,storeId:null,pantryId:null,driverId:null};
+
+/* ======================= HELPERS ======================= */
+const km=(a,b)=>{const R=6371,dLat=(b.lat-a.lat)*Math.PI/180,dLng=(b.lng-a.lng)*Math.PI/180,la1=a.lat*Math.PI/180,la2=b.lat*Math.PI/180;const h=Math.sin(dLat/2)**2+Math.cos(la1)*Math.cos(la2)*Math.sin(dLng/2)**2;return R*2*Math.atan2(Math.sqrt(h),Math.sqrt(1-h));};
+const miles=(a,b)=>km(a,b)/1.60934;
+const driveMin=(a,b)=>Math.max(4,Math.round(miles(a,b)/MPH*60));
+const hoursToPickup=l=>(l.expiresAt-Date.now())/3600000;
+// Category perishability: fresh, fast-spoiling food outranks shelf-stable goods at the same deadline (strawberries beat canned beans)
+const PERISH={"Prepared Meals":0.45,"Dairy":0.40,"Meat & Protein":0.40,"Fruits":0.35,"Vegetables":0.35,"Bread & Bakery":0.30,"Eggs":0.25,"Canned & Dry Goods":0,"Toiletries & Household":0,"Other":0};
+const urgencyMult=(c,l)=>{if(c.reopened)return 2.0;const h=hoursToPickup(l);const base=h<=2?1.5:h<=6?1.2:1.0;return base+(PERISH[l.category]||0);};
+const strikeWeight=id=>(DB.strikes||[]).filter(s=>s.driverId===id).reduce((a,s)=>a+(s.weight||1),0);
+const need=c=>AREA_NEED[c]??20;
+// Badges scale relative to the range of areas being served, so the spread reads clearly
+function _needRange(){const v=DB.pantries.map(p=>need(p.county));return [Math.min(...v),Math.max(...v)];}
+function _norm(n){const [mn,mx]=_needRange();return mx>mn?(n-mn)/(mx-mn):.5;}
+const needRank=n=>{const t=_norm(n);return t>=0.60?["prio","High need"]:t>=0.20?["med","Moderate need"]:["low","Lower need"];};
+const needColor=n=>{const t=_norm(n);return t>=0.80?"#e0574e":t>=0.60?"#ec8a4f":t>=0.40?"#caa23a":t>=0.20?"#7ba35a":"#15a06a";};
+const store=id=>DB.stores.find(s=>s.id===id);
+const pantry=id=>DB.pantries.find(p=>p.id===id);
+const driver=id=>DB.drivers.find(d=>d.id===id);
+const listing=id=>DB.listings.find(l=>l.id===id);
+const cap=s=>s?s[0].toUpperCase()+s.slice(1):s;
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const toast=m=>{const t=document.getElementById('toast');document.getElementById('toastMsg').textContent=m;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),2600);};
+const avatarColor=r=>r==='store'?'#e2823f':r==='pantry'?'#15a06a':'#3b7fb0';
+
+/* ======================= SMART PARSER ======================= */
+function parseText(txt){
+  const low=txt.toLowerCase(); const t0=' '+low+' ';
+  // deadline (one per posting)
+  let deadline="by end of day";
+  const months=['january','february','march','april','may','june','july','august','september','october','november','december'];
+  const monRe=new RegExp('('+months.join('|')+'|jan|feb|mar|apr|jun|jul|aug|sep|oct|nov|dec)\\.?\\s*(\\d{1,2})');
+  let mm;
+  if(mm=t0.match(monRe)){deadline=`by ${cap(mm[1]).slice(0,3)} ${mm[2]}`;}
+  else if(mm=t0.match(/(\d{1,2})\s*(am|pm)/)){deadline=`by ${mm[1]}${mm[2]}`;}
+  else if(mm=t0.match(/by\s+(\d{1,2})\/(\d{1,2})/)){deadline=`by ${mm[1]}/${mm[2]}`;}
+  else if(t0.includes('tonight'))deadline="by tonight";
+  else if(t0.includes('tomorrow'))deadline="by tomorrow";
+  else if(t0.includes('noon'))deadline="by noon";
+  else if(mm=t0.match(/(monday|tuesday|wednesday|thursday|friday|saturday|sunday)/))deadline=`by ${cap(mm[1])}`;
+  else if(mm=t0.match(/(\d+)\s*hour/))deadline=`in ${mm[1]} hours`;
+  // split into separate items on "and", commas, "+", "plus"
+  const segs=low.split(/\s+and\s+|,|;|\+|\n|\bplus\b/).map(s=>s.trim()).filter(Boolean);
+  const items=[];
+  segs.forEach(seg=>{
+    const t=' '+seg+' ';
+    const m=t.match(/(\d+(?:\.\d+)?)\s*(lbs?|pounds?|kg|cases?|crates?|boxes?|box|trays?|bags?|dozen|units?|items?|pieces?|pcs|bottles?|bars?|cans?|loaves|loaf|packs?|jars?)?/);
+    if(!m) return;
+    let qty=parseFloat(m[1]); const u=(m[2]||'').replace(/s$/,'');
+    let category=null;
+    for(const cc of CATS){if(cc.k.length&&cc.k.some(k=>t.includes(k))){category=cc.c;break;}}
+    let unit;
+    if(['lb','pound'].includes(u)) unit='lbs';
+    else if(u==='kg'){unit='lbs';qty=qty*2.2;}
+    else if(['case','crate','box','tray','bag','dozen','unit','item','piece','pc','bottle','bar','can','loaf','loave','pack','jar'].includes(u)) unit='units';
+    else unit=(category&&!['Toiletries & Household','Other'].includes(category))?'lbs':'units';
+    if(!category) category='Other';
+    items.push({category,qty:Math.max(1,Math.round(qty)),unit});
+  });
+  if(!items.length) items.push({category:'Fruits',qty:40,unit:'lbs'});
+  return {items,deadline};
+}
+
+/* ======================= VERIFICATION / ONBOARDING ======================= */
+let vRole=null, vStep=0, vData={};
+const VSTEPS={
+  store:{grad:"linear-gradient(145deg,#ee9a5c,#d9702f)",emoji:"🛒",sample:"Acme Markets",steps:[
+    {q:"What’s your store called?",help:"The name food banks will see when you post surplus.",k:"name",ph:"e.g. Acme Markets — Springfield"},
+    {q:"Where are you located?",help:"We match you with nearby food banks and place you on the map.",k:"addr",ph:"175 Morris Ave, Springfield, NJ"},
+    {q:"What’s your contact email?",help:"For pickup confirmations and your tax receipts.",k:"email",ph:"manager@store.com"},
+    {q:"Your business license or EIN",help:"Confirms you’re a registered business.",k:"lic",ph:"EIN 00-0000000"},
+    {q:"Upload your business license",help:"A quick legitimacy check.",k:"file",file:1}]},
+  pantry:{grad:"linear-gradient(145deg,#34c285,#0f8657)",emoji:"🍽️",sample:"Newark Community Food Bank",steps:[
+    {q:"What’s your organization called?",help:"The name stores and drivers will see.",k:"name",ph:"e.g. Newark Community Food Bank"},
+    {q:"Where are you located?",help:"We use this to find your county’s need score and nearby stores.",k:"addr",ph:"224 Sussex Ave, Newark, NJ"},
+    {q:"Your EIN / 501(c)(3) number",help:"Confirms you’re a registered nonprofit.",k:"ein",ph:"EIN 00-0000000"},
+    {q:"What’s your contact email?",help:"For claim confirmations.",k:"email",ph:"contact@pantry.org"},
+    {q:"Upload your 501(c)(3) letter",help:"A quick nonprofit check.",k:"file",file:1}]},
+  driver:{grad:"linear-gradient(145deg,#6aa8d0,#3b7fb0)",emoji:"🚐",sample:"Maya Reyes",steps:[
+    {q:"What’s your name?",help:"Stores and food banks will see this.",k:"name",ph:"e.g. Maya Reyes"},
+    {q:"What’s your home address?",help:"Your runs start and end here — we use it for your round-trip estimate.",k:"addr",ph:"Street, City, NJ"},
+    {q:"Your driver’s license number",help:"For your ID and background check.",k:"dl",ph:"D000-0000-0000"},
+    {q:"What will you be driving?",help:"So food banks know what’s arriving.",k:"veh",ph:"e.g. Toyota RAV4"},
+    {q:"Upload your driver’s license",help:"A quick ID check.",k:"file",file:1}]},
+};
+function startRole(role){vRole=role;vStep=0;vData={};document.getElementById('picker').classList.add('hidden');document.getElementById('verify').classList.remove('hidden');renderVStep();}
+function renderVStep(){
+  const cfg=VSTEPS[vRole],steps=cfg.steps,st=steps[vStep],n=steps.length;
+  let field;
+  if(st.file){field=`<div class="vfile" onclick="this.querySelector('input').click()"><input type="file" hidden onchange="var s=this.parentNode.querySelector('.vfn');if(this.files[0]){vData.fileName=this.files[0].name;s.textContent=this.files[0].name;s.style.color='var(--green-d)'}"><span>📎</span><span class="vfn">${vData.fileName||'Choose file…'}</span></div>`;}
+  else{field=`<input id="vinput" placeholder="${st.ph}" value="${vData[st.k]||''}" onkeydown="if(event.key==='Enter')vNext()">`;}
+  document.getElementById('verify').innerHTML=`<div class="vcard">
+    <div class="vtop"><div class="vlogo sm" style="background:${cfg.grad}">${cfg.emoji}</div><div class="vstepn">Step ${vStep+1} of ${n}</div></div>
+    <div class="vprog"><i style="width:${Math.round((vStep+1)/n*100)}%"></i></div>
+    <h1 class="vq">${st.q}</h1>
+    <p class="vhelp">${st.help}</p>
+    <div class="vfield">${field}</div>
+    <div class="verr" id="verr"></div>
+    <div class="vbtns">
+      ${vStep>0?`<button class="btn sec vhalf" onclick="vBack()">← Back</button>`:''}
+      <button class="btn ${vStep>0?'vhalf':''}" onclick="vNext()">${vStep===n-1?'🛡️ Verify &amp; finish':'Continue →'}</button>
+    </div>
+    <div class="vrow"><a href="#" onclick="useSample(vRole);return false">Skip setup — use a sample account →</a></div>
+    <div class="vfoot">🔒 Demo only — nothing is uploaded or stored.</div>
+  </div>`;
+  const inp=document.getElementById('vinput');if(inp)setTimeout(()=>inp.focus(),60);
+}
+function vSaveField(){const st=VSTEPS[vRole].steps[vStep];if(!st.file){const e=document.getElementById('vinput');if(e)vData[st.k]=e.value.trim();}}
+function vBack(){vSaveField();if(vStep>0){vStep--;renderVStep();}}
+function vNext(){
+  const st=VSTEPS[vRole].steps[vStep];
+  if(st.file){ if(!vData.fileName) return vErr('Please choose a file to continue — or skip setup below.'); }
+  else{
+    const e=document.getElementById('vinput'); const val=e?e.value.trim():'';
+    if(!val) return vErr('Please fill this in to continue — or skip setup below.');
+    if(st.k==='email' && !/.+@.+\..+/.test(val)) return vErr('That doesn’t look like a valid email.');
+    vData[st.k]=val;
+  }
+  const n=VSTEPS[vRole].steps.length;
+  if(vStep<n-1){vStep++;renderVStep();} else { doVerify(); }
+}
+function vErr(msg){
+  const el=document.getElementById('verr'); if(el){el.textContent=msg;el.classList.add('show');}
+  const inp=document.getElementById('vinput'); if(inp){inp.classList.add('err');inp.focus();}
+  const f=document.querySelector('.vfield .vfile'); if(f)f.classList.add('err');
+  const card=document.querySelector('.vcard'); if(card){card.classList.remove('shake');void card.offsetWidth;card.classList.add('shake');}
+  const row=document.querySelector('.vrow'); if(row)row.classList.add('nudge');
+}
+function useSample(role){document.getElementById('verify').classList.add('hidden');enter(role);}
+async function geocode(addr){
+  try{
+    const u='https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=1&q='+encodeURIComponent(addr);
+    const r=await fetch(u,{headers:{'Accept-Language':'en'}});const j=await r.json();
+    if(j&&j[0]){const a=j[0].address||{};return {lat:+j[0].lat,lng:+j[0].lon,county:a.county||'',city:a.city||a.town||a.village||a.hamlet||a.municipality||a.suburb||''};}
+  }catch(e){}
+  return null;
+}
+async function doVerify(){
+  const cfg=VSTEPS[vRole];
+  document.getElementById('verify').innerHTML=`<div class="vcard" style="text-align:center;padding:50px 30px">
+    <div class="vspin"></div>
+    <h1 class="vq" id="vstat" style="text-align:center;margin-top:22px">Verifying your identity…</h1>
+    <p class="vhelp" style="text-align:center">Checking your details and documents</p></div>`;
+  await sleep(1300);
+  const addr=vData.addr||'';
+  let loc=addr?await geocode(addr):null;
+  if(!loc)loc={lat:40.72+(Math.random()-.5)*.12,lng:-74.25+(Math.random()-.5)*.12,county:'Essex County',city:'Newark'};
+  const st=document.getElementById('vstat');if(st)st.textContent='✓ Verified!';
+  await sleep(650);
+  createEntity(vRole,vData.name||cfg.sample,loc,addr);
+}
+function createEntity(role,name,loc,addr){
+  if(role==='store'){const id='st'+(SSEQ++);DB.stores.push({id,name,area:loc.city||'NJ',lat:loc.lat,lng:loc.lng,verified:true,address:addr});me.storeId=id;}
+  else if(role==='pantry'){const id='pa'+(PSEQ++);const county=loc.county||'Essex County';if(!(county in AREA_NEED))AREA_NEED[county]=20;DB.pantries.push({id,name,area:loc.city||'NJ',county,lat:loc.lat,lng:loc.lng,needs:[],verified:true,address:addr,ein:(vData.ein||'')});me.pantryId=id;}
+  else if(role==='driver'){const id='dr'+(DSEQ++);DB.drivers.push({id,name,lat:loc.lat,lng:loc.lng,rating:5.0,runs:0,verified:true,address:addr});me.driverId=id;}
+  document.getElementById('verify').classList.add('hidden');
+  saveDB();
+  enter(role);
+}
+
+/* ======================= NAV / SHELL ======================= */
+function enter(role){
+  me.role=role;
+  if(role==='store')me.id=me.storeId||(me.storeId="st1");
+  if(role==='pantry')me.id=me.pantryId||(me.pantryId="pa1");
+  if(role==='driver')me.id=me.driverId||(me.driverId="dr1");
+  // 'city' is a public dashboard — no identity required
+  document.getElementById('picker').classList.add('hidden');
+  document.getElementById('app').classList.remove('hidden');
+  document.querySelectorAll('#switch button').forEach(b=>b.classList.toggle('on',b.dataset.r===role));
+  renderWho(); renderView();
+}
+function exitApp(){document.getElementById('app').classList.add('hidden');document.getElementById('picker').classList.remove('hidden');me.role=null;}
+function renderWho(){
+  if(me.role==='city'){
+    const now=new Date();
+    let h=now.getHours(),m=now.getMinutes().toString().padStart(2,'0'),ap=h>=12?'PM':'AM';h=h%12||12;
+    document.getElementById('who').innerHTML=`
+      <div class="ava" style="background:#0d6644">NJ</div>
+      <div class="meta"><div class="n">Public dashboard</div><div class="s">Live · ${h}:${m} ${ap} ET</div></div>
+      <button class="exit" onclick="exitApp()" title="Switch role">⎋</button>`;
+    return;
+  }
+  let n,s,ver=true;
+  if(me.role==='store'){const x=store(me.id);n=x.name;s=x.area+', NJ';ver=x.verified!==false;}
+  if(me.role==='pantry'){const x=pantry(me.id);n=x.name;s=x.county+', NJ';ver=x.verified!==false;}
+  if(me.role==='driver'){const x=driver(me.id);n=x.name;s=x.runs+' deliveries · Volunteer driver';ver=x.verified!==false;}
+  document.getElementById('who').innerHTML=`
+    <div class="ava" style="background:${avatarColor(me.role)}">${n[0]}</div>
+    <div class="meta"><div class="n">${n} ${ver?'<span class="vchk" title="ID-verified">🛡️</span>':''}</div><div class="s">${s}</div></div>
+    <button class="exit" onclick="exitApp()" title="Switch role">⎋</button>`;
+}
+function renderView(){
+  if(me.role==='store')renderStore();
+  else if(me.role==='pantry')renderPantry();
+  else if(me.role==='driver')renderDriver();
+  else if(me.role==='city')renderCity();
+}
+
+/* ======================= STORE VIEW ======================= */
+let storeTab='quick', parsed=null;
+function renderStore(){
+  const s=store(me.id);
+  const myL=DB.listings.filter(l=>l.storeId===s.id);
+  const delivered=DB.claims.filter(c=>(c.status==='delivered'||c.status==='confirmed')&&myL.some(l=>l.id===c.listingId));
+  const lbsOut=delivered.reduce((a,c)=>a+c.lbs,0), meals=Math.round(lbsOut/1.2), taxVal=Math.round(lbsOut*1.6);
+  const reach=DB.pantries.filter(p=>km(s,p)<=KM_RADIUS).length;
+  const newRcpts=DB.claims.filter(c=>c.status==='confirmed'&&!c.notifiedReceipt&&myL.some(l=>l.id===c.listingId));
+  const rcptBanner=newRcpts.length?`<div class="card pad mt" style="border-color:var(--green);background:var(--green-tint)">
+    <div class="card-title" style="font-size:16px">🧾 ${newRcpts.length} new tax receipt${newRcpts.length>1?'s':''} ready</div>
+    <p class="card-desc" style="margin:7px 0 12px">A food bank confirmed they received your donation. Your tax receipt is now available.</p>
+    ${newRcpts.map(c=>{const pn=pantry(c.pantryId);return `<div class="claimed-row" style="justify-content:space-between"><span>${pn?pn.name:'A food bank'} confirmed · ${amtC(c)}</span><button class="btn sm" style="width:auto;padding:7px 13px" onclick="showReceipt('${c.id}')">View receipt</button></div>`;}).join('')}
+  </div>`:'';
+  document.getElementById('view').innerHTML=`<div class="split-wrap">
+    <div class="split-list">
+      <div class="section-h">Post surplus food</div>
+      <div class="section-sub">Food that won't sell? Post it in seconds — we notify the ${reach} food banks within ${MILES} miles and match a volunteer to pick it up.</div>
+      ${rcptBanner}
+      <div class="impact-strip">
+        <div class="ip"><div class="ipn">${lbsOut}</div><div class="ipl">lbs donated</div></div>
+        <div class="ip"><div class="ipn">${meals}</div><div class="ipl">meals funded</div></div>
+        <div class="ip"><div class="ipn">$${taxVal}</div><div class="ipl">est. tax value</div></div>
+      </div>
+      <div class="card pad mt">
+        <div class="tabs">
+          <div class="tab ${storeTab==='quick'?'on':''}" data-tab="quick" onclick="setStoreTab('quick')">⚡ Quick — just type it</div>
+          <div class="tab ${storeTab==='form'?'on':''}" data-tab="form" onclick="setStoreTab('form')">📋 Use a form</div>
+        </div>
+        <div id="poster"></div>
+      </div>
+      <div class="mt">
+        <div class="card-title">📦 Your listings</div>
+        <p class="card-desc">Track each donation from posted → claimed → delivered. Grab a tax receipt once it's fully rescued.</p>
+        <div id="myListings"></div>
+      </div>
+    </div>
+    <div id="smap"></div>
+  </div>`;
+  setTimeout(initStoreMap,40);
+  renderPoster(); renderMyListings();
+}
+function initStoreMap(){
+  const c=document.getElementById('smap');if(!c)return;
+  if(smap){smap.remove();smap=null;}
+  const s=store(me.id);
+  smap=L.map(c,{zoomControl:false,attributionControl:false}).setView([s.lat,s.lng],11);
+  L.control.zoom({position:'bottomright'}).addTo(smap);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{attribution:'',maxZoom:19}).addTo(smap);
+  L.circle([s.lat,s.lng],{radius:KM_RADIUS*1000,color:'#e2823f',weight:1,fillColor:'#e2823f',fillOpacity:.05,dashArray:'4,6'}).addTo(smap);
+  L.marker([s.lat,s.lng],{icon:storeIcon()}).addTo(smap).bindTooltip('Your store · '+s.name,{direction:'top'});
+  const pts=[[s.lat,s.lng]];
+  DB.pantries.filter(p=>km(s,p)<=KM_RADIUS).forEach(p=>{
+    L.marker([p.lat,p.lng],{icon:dotIcon(needColor(need(p.county)))}).addTo(smap).bindTooltip(p.name+' · '+needRank(need(p.county))[1],{direction:'top'});
+    pts.push([p.lat,p.lng]);
+  });
+  try{smap.fitBounds(pts,{padding:[70,70],maxZoom:11});}catch(e){}
+}
+function setStoreTab(t){storeTab=t;parsed=null;document.querySelectorAll('.tabs .tab').forEach(el=>el.classList.toggle('on',el.dataset.tab===t));renderPoster();}
+function renderPoster(){
+  const el=document.getElementById('poster');
+  if(storeTab==='quick'){
+    el.innerHTML=`
+      <span class="label">Tell us what you have</span>
+      <textarea id="qtext" placeholder="e.g. About 80 lbs of bananas and some bread, needs to go by 6pm"></textarea>
+      <button class="btn mt2" onclick="doParse()">✨ Read my listing</button>
+      <div id="parsedBox"></div>`;
+  }else{
+    el.innerHTML=`
+      <span class="label">Create a listing</span>
+      <div style="display:grid;grid-template-columns:1.3fr .75fr .8fr 1fr;gap:9px">
+        <select id="fcat">${ALLCATS.map(c=>`<option>${c}</option>`).join('')}</select>
+        <input id="flbs" type="number" placeholder="amount" value="80" />
+        <select id="funit"><option value="lbs">lbs</option><option value="units">units</option></select>
+        <select id="fdead"><option>by end of day</option><option>by tonight</option><option>by 6pm</option><option>by noon</option><option>by tomorrow</option></select>
+      </div>
+      <button class="btn amber mt2" onclick="postFromForm()">＋ Post this surplus</button>`;
+  }
+}
+function doParse(){
+  const v=document.getElementById('qtext').value.trim();
+  if(!v){toast("Type what you have first");return;}
+  parsed=parseText(v);
+  const rows=parsed.items.map(it=>`<div class="pchip"><span class="k">${it.category}</span><b>${it.qty} ${unitLabel(it.unit,it.qty)}</b></div>`).join('');
+  document.getElementById('parsedBox').innerHTML=`
+    <div class="parsed">
+      <div class="pl">✨ Here's what we understood — looks right?</div>
+      <div class="pchips">${rows}<div class="pchip"><span class="k">Pick up</span><b>${parsed.deadline}</b></div></div>
+      <button class="btn amber" style="margin-top:13px" onclick="postFromParse()">＋ Post ${parsed.items.length>1?`all ${parsed.items.length} items`:'this surplus'}</button>
+    </div>`;
+}
+function postFromParse(){parsed.items.forEach(it=>postListing(it.category,it.qty,it.unit,parsed.deadline));parsed=null;}
+function postFromForm(){
+  const c=document.getElementById('fcat').value, l=parseInt(document.getElementById('flbs').value||0), u=document.getElementById('funit').value, d=document.getElementById('fdead').value;
+  if(!l||l<1){toast("Enter an amount");return;}
+  postListing(c,l,u,d);
+}
+function postListing(category,qty,unit,deadline){
+  const s=store(me.id);
+  const hrs=/tomorrow/.test(deadline)?20:/noon/.test(deadline)?2:/tonight|pm/.test(deadline)?3:4;
+  const l={id:"L"+(LSEQ++),storeId:s.id,storeName:s.name,area:s.area,lat:s.lat,lng:s.lng,category,lbs:qty,available:qty,unit:unit||'lbs',deadline,expiresAt:Date.now()+hrs*3600000,createdAt:Date.now()};
+  DB.listings.push(l);
+  const reached=DB.pantries.filter(p=>p.needs.includes(category)&&km(s,p)<=KM_RADIUS).length;
+  toast(`Posted! ${reached} food bank${reached===1?'':'s'} within ${MILES} mi notified`);
+  saveDB(); renderStore();
+}
+function renderMyListings(){
+  const s=store(me.id);
+  const mine=DB.listings.filter(l=>l.storeId===s.id).slice().reverse();
+  const el=document.getElementById('myListings');
+  if(!mine.length){el.innerHTML=`<div class="empty"><div class="e">📦</div><p>No listings yet. Post your first surplus above and watch it reach a family.</p></div>`;return;}
+  el.innerHTML=mine.map(l=>{
+    const cls=DB.claims.filter(c=>c.listingId===l.id);
+    const delivered=cls.filter(c=>c.status==='delivered'||c.status==='confirmed');
+    const enroute=cls.filter(c=>c.status==='enroute');
+    const pct=Math.round((l.lbs-l.available)/l.lbs*100);
+    const icon=CATICON[l.category]||'🍽️';
+    let status;
+    if(l.available<=0&&enroute.length===0){status=`<span class="badge low">✓ Fully rescued</span>`;}
+    else if(enroute.length){status=`<span class="badge time">🚐 Driver en route</span>`;}
+    else if(cls.length){status=`<span class="badge med">${cls.length} claim${cls.length===1?'':'s'} · finding driver</span>`;}
+    else{status=`<span class="badge status">Notified · waiting</span>`;}
+    const claimRows=cls.filter(c=>c.status==='delivered'||c.status==='confirmed').map(c=>{
+      const pn=pantry(c.pantryId);
+      if(c.status==='confirmed') return `<div class="claimed-row" style="justify-content:space-between"><span>🧾 Tax receipt ready · ${pn?pn.name:'food bank'} · ${amtC(c)}</span><button class="btn sm" style="width:auto;padding:7px 13px" onclick="showReceipt('${c.id}')">View receipt</button></div>`;
+      return `<div class="claimed-row" style="background:var(--amber-soft);color:var(--amber-d)">🚚 Delivered to ${pn?pn.name:'food bank'} · awaiting their confirmation</div>`;
+    }).join('');
+    return `<div class="item rich">
+      <div class="ih">
+        <div style="display:flex;gap:13px;align-items:center;min-width:0">
+          <div class="cat-ic">${icon}</div>
+          <div style="min-width:0"><div class="title">${l.category} <span class="cat-pill">${amtL(l)}</span></div>
+            <div class="meta"><span>Pick up <b>${l.deadline}</b></span><span><b>${l.available}</b> ${unitLabel(l.unit,l.available)} left</span></div></div>
+        </div>${status}
+      </div>
+      <div class="barline"><i style="width:${pct}%"></i></div>
+      ${claimRows}
+    </div>`;
+  }).join('');
+}
+function showReceipt(cid){
+  const c=DB.claims.find(x=>x.id===cid); if(!c) return;
+  const l=listing(c.listingId), s=store(l.storeId), p=pantry(c.pantryId);
+  const isLbs=l.unit!=='units';
+  const fmv=isLbs?c.lbs*FMV_PER_LB:0, ded=fmv*0.75, meals=isLbs?Math.round(c.lbs/1.2):0;
+  c.notifiedReceipt=true; saveDB();
+  const rno='RPL-'+new Date().getFullYear()+'-'+String(c.id).replace(/\D/g,'').padStart(6,'0');
+  const issued=new Date(c.confirmedAt||Date.now()).toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
+  const sAddr=s.address||(s.area+', NJ, USA');
+  const pAddr=p.address||(p.area+', NJ, USA');
+  const pEin=p.ein||PANTRY_EIN[p.id]||'Pending';
+  const lbl='font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--faint);margin-bottom:4px';
+  const sm='font-size:12px;color:var(--muted);line-height:1.4';
+  document.getElementById('modalBody').innerHTML=`
+    <div class="receipt">
+      <div class="rh"><div class="mark" style="width:38px;height:38px;border-radius:11px;display:grid;place-items:center;background:linear-gradient(145deg,#34c285,#0f8657)"><svg viewBox="0 0 24 24" width="20" height="20" fill="none"><path d="M12 21c0-5 3-8 7-9-1 5-4 8-7 9Zm0 0c0-5-3-8-7-9 1 5 4 8 7 9Zm0-1V8" stroke="#fff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div><h3>Charitable Donation Receipt</h3><div style="font-size:12px;color:var(--muted)">Replenish Food Rescue · No. ${rno}</div></div></div>
+      <div style="display:flex;gap:16px;margin:4px 0 14px">
+        <div style="flex:1"><div style="${lbl}">Donor</div><div style="font-weight:700;font-size:13.5px">${s.name}</div><div style="${sm}">${sAddr}</div></div>
+        <div style="flex:1"><div style="${lbl}">Recipient organization</div><div style="font-weight:700;font-size:13.5px">${p.name}</div><div style="${sm}">${pAddr}<br>EIN ${pEin} · 501(c)(3) nonprofit</div></div>
+      </div>
+      <div class="line"><span>Date of contribution</span><span>${issued}</span></div>
+      <div class="line"><span>Description of property</span><span>${l.category}, apparently wholesome food</span></div>
+      <div class="line"><span>Quantity</span><span>${c.lbs} ${unitLabel(l.unit,c.lbs)}${isLbs?` · approx. ${meals} meals`:''}</span></div>
+      ${isLbs?`<div class="line"><span>Est. fair market value ($${FMV_PER_LB.toFixed(2)}/lb)</span><span>$${fmv.toFixed(2)}</span></div>
+      <div class="line tot"><span>Est. enhanced deduction · IRC §170(e)(3)</span><span>$${ded.toFixed(2)}</span></div>`:`<div class="line tot"><span>Fair market value</span><span>Per donor's cost records</span></div>`}
+      <div style="margin-top:12px;padding:11px 13px;background:var(--green-tint);border:1px solid var(--green-soft);border-radius:11px;font-size:12px;color:var(--green-d);font-weight:600;line-height:1.45">✓ Receipt confirmed by ${p.name} on ${issued}. No goods or services were provided in exchange for this contribution.</div>
+      <div class="note">Food donated in good faith under the Bill Emerson Good Samaritan Food Donation Act (42 U.S.C. §1791) and the Food Donation Improvement Act of 2022. Enhanced deduction is an estimate under IRC §170(e)(3) (the lesser of cost basis plus one-half of unrealized appreciation, or twice cost basis); the donor should retain cost-basis records and consult a tax professional. Replenish facilitates this donation and does not provide tax advice.</div>
+      <div style="display:flex;gap:10px;margin-top:15px">
+        <button class="btn sec" style="flex:1" onclick="closeModal()">Close</button>
+        <button class="btn" style="flex:1" onclick="window.print()">🧾 Print / Save PDF</button>
+      </div>
+    </div>`;
+  document.getElementById('modal').classList.add('show');
+}
+function closeModal(){document.getElementById('modal').classList.remove('show');if(me.role==='store')renderStore();}
+
+/* ======================= PANTRY VIEW ======================= */
+function renderPantry(){
+  const p=pantry(me.id);
+  const [nc,nl]=needRank(need(p.county));
+  const myDel=DB.claims.filter(c=>c.pantryId===p.id&&(c.status==='delivered'||c.status==='confirmed'));
+  const lbsIn=myDel.reduce((a,c)=>a+c.lbs,0), mealsIn=Math.round(lbsIn/1.2);
+  const pending=DB.claims.filter(c=>c.pantryId===p.id&&c.status==='delivered');
+  const pendHtml=pending.length?`<div class="card pad mt" style="border-color:var(--amber);background:var(--amber-soft)">
+    <div class="card-title">🔔 Pending confirmation <span class="need-counter" style="background:#fff;color:var(--amber-d)">${pending.length}</span></div>
+    <p class="card-desc">A driver marked these delivered. Confirm you received them — this two-way check is how Replenish keeps food honest.</p>
+    ${pending.map(c=>{const l=listing(c.listingId),drv=driver(c.driverId);return `<div class="item rich" style="margin-bottom:10px;background:#fff">
+      <div class="ih"><div style="display:flex;gap:13px;align-items:center;min-width:0"><div class="cat-ic">${(l&&CATICON[l.category])||'🍽️'}</div>
+        <div style="min-width:0"><div class="title">${l?l.category:'Food'} <span class="cat-pill">${amtC(c)}</span></div>
+        <div class="meta"><span>from <b>${l?l.storeName:'a store'}</b></span><span>by <b>${drv?drv.name:'a driver'}</b></span></div></div></div></div>
+      <div class="vbtns" style="margin-top:12px"><button class="btn sm vhalf" style="background:var(--red-soft);color:var(--red)" onclick="disputeDelivery('${c.id}')">Didn’t receive</button>
+        <button class="btn sm vhalf" onclick="confirmReceipt('${c.id}')">✓ Confirm receipt</button></div>
+    </div>`;}).join('')}
+  </div>`:'';
+  document.getElementById('view').innerHTML=`<div class="split-wrap">
+    <div class="split-list">
+      <div class="section-h">${p.name}</div>
+      <div class="section-sub">${p.area} · ${p.county}, NJ · serving a <span class="badge ${nc}">${nl}</span> community — you get first priority on items you request.</div>
+      <div class="impact-strip">
+        <div class="ip"><div class="ipn">${mealsIn}</div><div class="ipl">meals received</div></div>
+        <div class="ip"><div class="ipn">${lbsIn}</div><div class="ipl">lbs rescued</div></div>
+        <div class="ip"><div class="ipn" id="ipNeeds">${p.needs.length}/5</div><div class="ipl">needs set</div></div>
+      </div>
+      ${pendHtml}
+      <div class="card pad mt">
+        <div class="card-title">📋 Your weekly needs <span class="need-counter" id="ncount">${p.needs.length}/5</span></div>
+        <p class="card-desc">Pick up to 5 items your community needs most. When a nearby store posts one, <b>you're first in line</b> to claim it. Tap to add or remove.</p>
+        <div class="needchips" id="needchips"></div>
+      </div>
+      <div class="mt">
+        <div class="card-title">🥕 Available near you</div>
+        <p class="card-desc">Surplus posted by stores within ${MILES} miles right now. Items you requested are marked <b>★ requested</b> and shown first. Claim what you need — it's yours once a driver confirms.</p>
+        <div id="avail"></div>
+      </div>
+    </div>
+    <div id="pmap"></div>
+  </div>`;
+  setTimeout(initPantryMap,40);
+  renderNeedChips(); renderAvail();
+}
+function initPantryMap(){
+  const c=document.getElementById('pmap');if(!c)return;
+  if(pmap){pmap.remove();pmap=null;}
+  const p=pantry(me.id);
+  pmap=L.map(c,{zoomControl:false,attributionControl:false}).setView([p.lat,p.lng],11);
+  L.control.zoom({position:'bottomright'}).addTo(pmap);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{attribution:'',maxZoom:19}).addTo(pmap);
+  L.circle([p.lat,p.lng],{radius:KM_RADIUS*1000,color:'#15a06a',weight:1,fillColor:'#15a06a',fillOpacity:.05,dashArray:'4,6'}).addTo(pmap);
+  L.marker([p.lat,p.lng],{icon:homeIcon(needColor(need(p.county)))}).addTo(pmap).bindTooltip('Your food bank · '+p.name,{direction:'top'});
+  const seen={},pts=[[p.lat,p.lng]];
+  DB.listings.filter(l=>l.available>0&&km(l,p)<=KM_RADIUS).forEach(l=>{
+    if(seen[l.storeId])return;seen[l.storeId]=1;
+    L.marker([l.lat,l.lng],{icon:storeIcon()}).addTo(pmap).bindTooltip(l.storeName+' · surplus available',{direction:'top'});
+    pts.push([l.lat,l.lng]);
+  });
+  try{pmap.fitBounds(pts,{padding:[70,70],maxZoom:11});}catch(e){}
+}
+function renderNeedChips(){
+  const p=pantry(me.id);
+  document.getElementById('needchips').innerHTML=ALLCATS.map(c=>{
+    const on=p.needs.includes(c);const ic=CATICON[c]||'';
+    return `<div class="nchip ${on?'on':''}" onclick="toggleNeed('${c}')">${ic} ${c} <span class="x">${on?'✕':'＋'}</span></div>`;
+  }).join('');
+}
+function updateCounters(){const p=pantry(me.id);['ncount','ipNeeds'].forEach(id=>{const e=document.getElementById(id);if(e)e.textContent=p.needs.length+'/5';});}
+function toggleNeed(c){
+  const p=pantry(me.id);
+  if(p.needs.includes(c))p.needs=p.needs.filter(x=>x!==c);
+  else{if(p.needs.length>=5){toast("Top 5 only — remove one first");return;}p.needs.push(c);}
+  saveDB(); renderNeedChips(); renderAvail(); updateCounters();
+}
+function renderAvail(){
+  const p=pantry(me.id);
+  const list=DB.listings.filter(l=>l.available>0&&km(l,p)<=KM_RADIUS).map(l=>({l,match:p.needs.includes(l.category),d:miles(l,p)}))
+    .sort((a,b)=>(b.match-a.match)||a.d-b.d);
+  const el=document.getElementById('avail');
+  if(!list.length){el.innerHTML=`<div class="empty"><div class="e">🥕</div><p>Nothing available right now. When a nearby store posts surplus that matches your needs, it shows up here first.</p></div>`;return;}
+  el.innerHTML=list.map(({l,match,d})=>{
+    const myClaim=DB.claims.find(c=>c.listingId===l.id&&c.pantryId===p.id);
+    const icon=CATICON[l.category]||'🍽️';
+    return `<div class="item rich">
+      <div class="ih">
+        <div style="display:flex;gap:13px;align-items:center;min-width:0">
+          <div class="cat-ic">${icon}</div>
+          <div style="min-width:0"><div class="title">${l.category} <span class="cat-pill">${l.available} ${unitLabel(l.unit,l.available)}</span></div>
+            <div class="meta"><span>From <b>${l.storeName}</b></span><span>${d.toFixed(0)} mi</span><span>⏱ ${l.deadline}</span></div></div>
+        </div>
+        ${match?'<span class="badge prio">★ requested</span>':'<span class="badge status">extra</span>'}
+      </div>
+      ${myClaim?`<div class="claimed-row">✓ You claimed ${amtC(myClaim)} · ${claimStatusLabel(myClaim)}</div>`:`
+      <div class="foot">
+        <div class="claimbox"><button onclick="claimBump('${l.id}',-10)">−</button><input id="cl_${l.id}" type="number" value="${Math.min(l.available,30)}" min="10" max="${l.available}"><button onclick="claimBump('${l.id}',10)">＋</button></div>
+        <button class="btn sm" onclick="claim('${l.id}')">Claim this food</button>
+      </div>`}
+    </div>`;
+  }).join('');
+}
+function confirmReceipt(cid){const c=DB.claims.find(x=>x.id===cid);if(!c)return;c.status='confirmed';c.confirmedAt=Date.now();saveDB();toast('Confirmed — the store can now download its tax receipt');renderPantry();}
+function disputeDelivery(cid){const c=DB.claims.find(x=>x.id===cid);if(!c)return;const r=prompt('What happened? (optional — helps us review)');c.status='disputed';c.disputeReason=r||'';if(c.driverId)DB.strikes.push({driverId:c.driverId,type:'disputed',weight:1});saveDB();toast('Marked as not received — logged quietly for review.');renderPantry();}
+function claimBump(lid,d){const l=listing(lid);const i=document.getElementById('cl_'+lid);let v=parseInt(i.value||0)+d;v=Math.max(10,Math.min(l.available,v));i.value=v;}
+function claimStatusLabel(c){return c.status==='awaiting'?'finding a driver':c.status==='enroute'?'driver on the way':'delivered ✓';}
+function claim(lid){
+  const l=listing(lid),p=pantry(me.id);
+  let lbs=parseInt(document.getElementById('cl_'+lid).value||0);lbs=Math.max(10,Math.min(l.available,lbs));
+  DB.claims.push({id:"C"+(CSEQ++),listingId:lid,pantryId:p.id,lbs,driverId:null,status:'awaiting'});
+  toast(`Claimed ${lbs} lbs — yours once a driver confirms`);
+  saveDB(); renderPantry();
+}
+
+/* ======================= DRIVER VIEW ======================= */
+let driverSort='priority', dmap=null, dmapDriver=null, runLayers=[], selectedOpp=null;
+const vanIcon=color=>L.divIcon({className:'',html:`<div style="width:34px;height:34px;border-radius:50%;background:#fff;border:2.5px solid ${color};box-shadow:0 5px 14px rgba(0,0,0,.22);display:grid;place-items:center;font-size:16px">🚐</div>`,iconSize:[34,34],iconAnchor:[17,17]});
+const storeIcon=()=>L.divIcon({className:'',html:`<div style="width:30px;height:30px;border-radius:50% 50% 50% 4px;transform:rotate(45deg);background:linear-gradient(135deg,#ee9a5c,#d9702f);border:2.5px solid #fff;box-shadow:0 4px 11px rgba(217,112,47,.5);display:grid;place-items:center"><span style="transform:rotate(-45deg);font-size:12px">🛒</span></div>`,iconSize:[30,30],iconAnchor:[15,15]});
+const dotIcon=color=>L.divIcon({className:'',html:`<div style="width:20px;height:20px;border-radius:50%;border:3px solid #fff;background:${color};box-shadow:0 3px 10px rgba(30,40,34,.4)"></div>`,iconSize:[20,20],iconAnchor:[10,10]});
+const homeIcon=color=>L.divIcon({className:'',html:`<div style="width:32px;height:32px;border-radius:10px;background:${color};border:2.5px solid #fff;box-shadow:0 4px 12px rgba(0,0,0,.25);display:grid;place-items:center;font-size:15px">🍽️</div>`,iconSize:[32,32],iconAnchor:[16,16]});
+function clearRun(){runLayers.forEach(l=>{try{dmap.removeLayer(l);}catch(e){}});runLayers=[];}
+function fitRun(pts){try{dmap.fitBounds(pts.map(x=>[x.lat,x.lng]),{padding:[80,80],maxZoom:12});}catch(e){}}
+function animateVan(route,c){return new Promise(res=>{const N=route.length,step=Math.max(1,Math.floor(N/110));let i=0;dmapDriver.setLatLng(route[0]);const iv=setInterval(()=>{if(c&&c.status!=='enroute'){clearInterval(iv);res(false);return;}i+=step;if(i>=N){clearInterval(iv);dmapDriver.setLatLng(route[N-1]);res(true);return;}dmapDriver.setLatLng(route[i]);},24);});}
+function cancelRun(cid){
+  const c=DB.claims.find(x=>x.id===cid);if(!c||c.status!=='enroute')return;
+  const l=listing(c.listingId);
+  if(hoursToPickup(l)<=2) DB.strikes.push({driverId:c.driverId,type:'late_cancel',weight:0.5}); // silent
+  c.status='awaiting';c.reopened=true;c.driverId=null;
+  l.available=Math.min(l.lbs,l.available+c.lbs);
+  clearRun();saveDB();
+  toast('Run cancelled — reopened as URGENT for nearby drivers');
+  renderDriver();
+}
+function renderDriver(){
+  selectedOpp=null;
+  const d=driver(me.id);
+  document.getElementById('view').innerHTML=`<div class="driver-wrap">
+    <div class="driver-list">
+      <div class="section-h">Delivery runs near you</div>
+      <div class="section-sub">Pick up surplus and drop it at a food bank. Sorted so the highest-need runs come first.</div>
+      <div class="sortbar">
+        <button data-sort="priority" class="${driverSort==='priority'?'on':''}" onclick="setSort('priority')">By priority</button>
+        <button data-sort="time" class="${driverSort==='time'?'on':''}" onclick="setSort('time')">By shortest time</button>
+      </div>
+      <div id="oppList"></div>
+    </div>
+    <div id="dmap"></div>
+  </div>`;
+  setTimeout(initDriverMap,40);
+  renderOpps();
+}
+function setSort(s){driverSort=s;document.querySelectorAll('.sortbar button').forEach(b=>b.classList.toggle('on',b.dataset.sort===s));renderOpps();}
+async function selectRun(cid){
+  selectedOpp=cid; renderOpps();
+  if(!dmap)return;
+  const c=DB.claims.find(x=>x.id===cid);if(!c||c.status!=='awaiting')return;
+  const l=listing(c.listingId),p=pantry(c.pantryId),d=driver(me.id);
+  clearRun();
+  dmapDriver.setLatLng([d.lat,d.lng]).setIcon(vanIcon('#3b7fb0'));
+  const storeM=L.marker([l.lat,l.lng],{icon:storeIcon()}).addTo(dmap).bindTooltip('Pickup · '+l.storeName,{direction:'top'});
+  const pantM=L.marker([p.lat,p.lng],{icon:dotIcon(needColor(need(p.county)))}).addTo(dmap).bindTooltip('Drop-off · '+p.name,{direction:'top'});
+  runLayers.push(storeM,pantM);
+  fitRun([d,l,p]);
+  const r1=await getRoute(d,l); if(selectedOpp!==cid)return;
+  const line1=L.polyline(r1,{color:'#9aa89f',weight:3,opacity:.7,dashArray:'2,10',lineCap:'round'}).addTo(dmap);runLayers.push(line1);
+  const r2=await getRoute(l,p); if(selectedOpp!==cid)return;
+  const line2=L.polyline(r2,{color:'#3b7fb0',weight:4,opacity:.85,lineCap:'round'}).addTo(dmap);runLayers.push(line2);
+}
+function openOpps(){
+  const d=driver(me.id);
+  return DB.claims.filter(c=>c.status==='awaiting').map(c=>{
+    const l=listing(c.listingId),p=pantry(c.pantryId);
+    const pickup=driveMin(d,l), drop=driveMin(l,p), home=driveMin(p,d);
+    const um=urgencyMult(c,l), fin=need(p.county)*um;
+    return {c,l,p,score:need(p.county),um,fin,total:pickup+drop+home,pickup,drop,home};
+  }).sort((a,b)=> driverSort==='priority' ? (b.fin-a.fin||a.total-b.total) : (a.total-b.total||b.fin-a.fin));
+}
+function urgBadge(o){
+  const h=hoursToPickup(o.l);
+  if(o.um>=2.0||h<=2) return '<span class="badge prio">⚡ URGENT</span>';
+  if(needRank(o.score)[0]==='prio') return '<span class="badge med">★ MOST IN NEED</span>';
+  return '';
+}
+function activeRunCard(){
+  const c=DB.claims.find(x=>x.driverId===me.id&&x.status==='enroute');if(!c)return'';
+  const l=listing(c.listingId),p=pantry(c.pantryId);
+  return `<div class="item" style="border-color:var(--green);background:var(--green-tint)">
+    <div class="ih"><div><div class="title">🚐 Your active run <span class="cat-pill">${amtC(c)}</span></div>
+      <div class="meta"><span><b>${l.storeName}</b> → <b>${p.name}</b></span></div></div><span class="badge low">En route</span></div>
+    <div class="foot"><button class="btn sm" style="width:100%;background:var(--red-soft);color:var(--red)" onclick="cancelRun('${c.id}')">Cancel run</button></div>
+  </div>`;
+}
+function renderOpps(){
+  const opps=openOpps();
+  const el=document.getElementById('oppList');
+  const active=activeRunCard();
+  if(!opps.length){el.innerHTML=active+`<div class="empty"><div class="e">✅</div><p>No runs waiting right now. When a food bank claims surplus, it appears here for you to grab.</p></div>`;return;}
+  el.innerHTML=active+opps.map(o=>{
+    const bd=urgBadge(o);
+    return `<div class="item opp ${selectedOpp===o.c.id?'sel':''}" onclick="selectRun('${o.c.id}')">
+      <div class="ih"><div><div class="title">${o.l.category} <span class="cat-pill">${amtC(o.c)}</span></div>
+        <div class="meta"><span><b>${o.l.storeName}</b> → <b>${o.p.name}</b></span></div></div>
+        ${bd}</div>
+      <div class="meta" style="margin-top:10px"><span class="badge time">⏱ ${o.total} min round trip</span>${(PERISH[o.l.category]||0)>=0.3?'<span class="badge med">🍓 Perishable</span>':''}
+        <span style="font-size:12px;color:var(--muted)">${o.pickup}m to pickup · ${o.drop}m to drop · ${o.home}m home</span></div>
+      <div class="foot"><button class="btn blue sm" style="width:100%" onclick="event.stopPropagation();accept('${o.c.id}')">Accept this run →</button></div>
+      <div class="tap-hint">${selectedOpp===o.c.id?'✓ Showing on map':'Tap to preview on map'}</div>
+    </div>`;
+  }).join('');
+}
+function initDriverMap(){
+  const c=document.getElementById('dmap');if(!c)return;
+  if(dmap){dmap.remove();dmap=null;}
+  dmap=L.map(c,{zoomControl:false,attributionControl:false}).setView([40.7,-74.25],10);
+  L.control.zoom({position:'bottomright'}).addTo(dmap);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{attribution:'',maxZoom:19}).addTo(dmap);
+  const d=driver(me.id);
+  dmapDriver=L.marker([d.lat,d.lng],{icon:vanIcon('#3b7fb0')}).addTo(dmap).bindTooltip('You are here',{direction:'top'});
+}
+async function getRoute(a,b){
+  try{const u=`https://router.project-osrm.org/route/v1/driving/${a.lng},${a.lat};${b.lng},${b.lat}?overview=full&geometries=geojson`;
+    const r=await fetch(u);const j=await r.json();if(j.routes&&j.routes[0])return j.routes[0].geometry.coordinates.map(c=>[c[1],c[0]]);}catch(e){}
+  return [[a.lat,a.lng],[b.lat,b.lng]];
+}
+async function accept(cid){
+  if(strikeWeight(me.id)>=3){toast('Your account is under review. Please contact support.');return;}
+  const c=DB.claims.find(x=>x.id===cid);if(!c||c.status!=='awaiting')return;
+  const l=listing(c.listingId),p=pantry(c.pantryId),d=driver(me.id);
+  c.status='enroute';c.driverId=d.id;c.reopened=false;selectedOpp=null;
+  l.available=Math.max(0,l.available-c.lbs); // locked now that a driver confirmed
+  saveDB(); renderOpps();
+  if(!dmap){toast('Run accepted');return;}
+  // show ONLY this run on the map
+  clearRun();
+  const storeM=L.marker([l.lat,l.lng],{icon:storeIcon()}).addTo(dmap).bindTooltip('Pickup · '+l.storeName,{direction:'top'});
+  const pantM=L.marker([p.lat,p.lng],{icon:dotIcon(needColor(need(p.county)))}).addTo(dmap).bindTooltip('Drop-off · '+p.name,{direction:'top'});
+  runLayers.push(storeM,pantM);
+  fitRun([d,l,p]);
+  // Leg 1: you -> store (pickup)
+  toast(`Heading to pick up at ${l.storeName}`);
+  const r1=await getRoute(d,l);
+  const line1=L.polyline(r1,{color:'#9aa89f',weight:4,opacity:.85,dashArray:'2,10',lineCap:'round'}).addTo(dmap);runLayers.push(line1);
+  if(!await animateVan(r1,c))return; // cancelled mid-run
+  // Leg 2: store -> pantry (deliver)
+  toast(`Picked up ${c.lbs} lbs — delivering to ${p.name}`);
+  await sleep(550);
+  const r2=await getRoute(l,p);
+  const line2=L.polyline(r2,{color:'#10885a',weight:4,opacity:.95,lineCap:'round'}).addTo(dmap);runLayers.push(line2);
+  if(!await animateVan(r2,c))return; // cancelled mid-run
+  c.status='delivered';
+  const dp=L.circleMarker([p.lat,p.lng],{radius:6,color:'#15a06a',fillColor:'#34c285',fillOpacity:.8,weight:2}).addTo(dmap);runLayers.push(dp);
+  let rr=6,g=setInterval(()=>{rr+=2.6;dp.setRadius(rr);dp.setStyle({opacity:Math.max(0,1-rr/46),fillOpacity:Math.max(0,.6-rr/60)});if(rr>44)clearInterval(g);},38);
+  driver(me.id).runs++;
+  const meals=Math.round(c.lbs/1.2);
+  toast(`Delivered! ${c.lbs} lbs → ${meals} meals for ${p.area}`);
+  saveDB();
+  await sleep(1300);
+  renderDriver();
+}
+
+/* ======================= CITY DASHBOARD ======================= */
+const CITY_NJ=[
+  {name:"Cumberland",lat:39.36,lng:-75.13,need:34,meals:142,last:"11:08 AM"},
+  {name:"Essex",lat:40.79,lng:-74.24,need:23,meals:312,last:"11:22 AM"},
+  {name:"Hudson",lat:40.73,lng:-74.08,need:21,meals:248,last:"11:19 AM"},
+  {name:"Camden",lat:39.80,lng:-74.95,need:20,meals:189,last:"10:54 AM"},
+  {name:"Passaic",lat:41.03,lng:-74.30,need:20,meals:204,last:"11:11 AM"},
+  {name:"Cape May",lat:39.08,lng:-74.87,need:26,meals:71,last:"09:42 AM"},
+  {name:"Atlantic",lat:39.47,lng:-74.69,need:25,meals:118,last:"10:31 AM"},
+  {name:"Mercer",lat:40.28,lng:-74.70,need:20,meals:97,last:"10:48 AM"},
+  {name:"Salem",lat:39.57,lng:-75.36,need:18,meals:54,last:"08:55 AM"},
+  {name:"Ocean",lat:39.86,lng:-74.27,need:15,meals:88,last:"10:14 AM"},
+  {name:"Warren",lat:40.86,lng:-74.99,need:14,meals:42,last:"09:33 AM"},
+  {name:"Middlesex",lat:40.44,lng:-74.41,need:12,meals:175,last:"11:02 AM"},
+  {name:"Gloucester",lat:39.71,lng:-75.14,need:12,meals:79,last:"10:21 AM"},
+  {name:"Union",lat:40.66,lng:-74.31,need:12,meals:163,last:"11:14 AM"},
+  {name:"Burlington",lat:39.88,lng:-74.67,need:10,meals:96,last:"10:38 AM"},
+  {name:"Monmouth",lat:40.29,lng:-74.23,need:10,meals:104,last:"10:47 AM"},
+  {name:"Bergen",lat:40.96,lng:-74.07,need:10,meals:131,last:"11:05 AM"},
+  {name:"Sussex",lat:41.14,lng:-74.69,need:9,meals:33,last:"09:18 AM"},
+  {name:"Morris",lat:40.86,lng:-74.55,need:8,meals:74,last:"10:09 AM"},
+  {name:"Somerset",lat:40.56,lng:-74.61,need:8,meals:62,last:"10:26 AM"},
+  {name:"Hunterdon",lat:40.57,lng:-74.91,need:7,meals:29,last:"08:47 AM"}
+];
+const CITY_GROCERS=[
+  {name:"Acme Markets",area:"Springfield",lat:40.7045,lng:-74.3146},
+  {name:"Wegmans",area:"Woodbridge",lat:40.5576,lng:-74.2846},
+  {name:"ShopRite",area:"Bloomfield",lat:40.8068,lng:-74.1854},
+  {name:"Costco",area:"Union",lat:40.6976,lng:-74.2632},
+  {name:"Whole Foods",area:"Edgewater",lat:40.8261,lng:-73.9755},
+  {name:"Trader Joe's",area:"Westfield",lat:40.6587,lng:-74.3490}
+];
+const CITY_SHELTERS=[
+  {name:"Newark Community Food Bank",lat:40.7357,lng:-74.1724,need:23},
+  {name:"Jersey City Helping Hands",lat:40.7178,lng:-74.0431,need:21},
+  {name:"Paterson Family Pantry",lat:40.9168,lng:-74.1718,need:20},
+  {name:"Elizabeth Hope Center",lat:40.6639,lng:-74.2107,need:12},
+  {name:"New Brunswick Pantry",lat:40.4862,lng:-74.4518,need:12},
+  {name:"Cumberland Community Kitchen",lat:39.4565,lng:-75.0234,need:34}
+];
+const CITY_ACTIVE=[
+  {from:CITY_GROCERS[0],to:CITY_SHELTERS[0]},
+  {from:CITY_GROCERS[2],to:CITY_SHELTERS[2]},
+  {from:CITY_GROCERS[1],to:CITY_SHELTERS[4]},
+  {from:CITY_GROCERS[4],to:CITY_SHELTERS[1]}
+];
+const CITY_WIRE=[
+  {t:"11:23",html:`<b>Newark Community Food Bank</b> confirmed receipt — 60 lbs from Acme Markets <span class="tag confirmed">CONFIRMED</span>`},
+  {t:"11:21",html:`<b>ShopRite</b> Bloomfield posted 90 lbs of fresh produce; four food banks notified within twenty miles.`},
+  {t:"11:19",html:`<b>Priya S.</b> accepted run — ShopRite Bloomfield to Paterson Family Pantry, twenty-three minutes.`},
+  {t:"11:14",html:`<b>Jersey City Helping Hands</b> confirmed receipt — 45 lbs of dairy from Whole Foods Edgewater <span class="tag confirmed">CONFIRMED</span>`},
+  {t:"11:08",html:`Run reopened after late cancellation — Cumberland Community Kitchen, need 34 <span class="tag urgent">URGENT</span>`},
+  {t:"11:02",html:`<b>Costco</b> Union posted 120 lbs of bakery; five food banks within range.`},
+  {t:"10:54",html:`<b>James T.</b> en route — Wegmans Woodbridge to New Brunswick Pantry.`},
+  {t:"10:47",html:`<b>Cumberland Community Kitchen</b> confirmed receipt — 80 lbs after URGENT reopen <span class="tag confirmed">CONFIRMED</span>`},
+  {t:"10:41",html:`<b>Trader Joe's</b> Westfield posted 50 lbs bakery; three food banks notified.`},
+  {t:"10:34",html:`<b>Aaliyah K.</b> completed delivery to Paterson Family Pantry.`}
+];
+
+let cmap=null, cityTimers=[];
+// Real state averages + top counties, embedded so the national view works offline (file:// blocks fetch). Refreshed from need_index.min.json when served over http.
+const STATE_AVG={"AK":[49,29],"GA":[46,159],"KY":[52,120],"SD":[50,66],"MS":[58,82],"CO":[40,64],"LA":[48,64],"TN":[42,95],"AL":[48,67],"AR":[52,75],"WV":[49,55],"AZ":[43,15],"ND":[44,53],"SC":[42,46],"TX":[43,254],"VA":[34,133],"NC":[41,100],"NM":[54,33],"MO":[45,115],"MI":[41,83],"PA":[32,67],"WI":[33,72],"OK":[46,77],"MT":[49,56],"IL":[36,102],"WA":[33,39],"FL":[36,67],"CA":[32,58],"IA":[36,99],"NE":[43,93],"OR":[39,36],"UT":[34,29],"NV":[37,17],"MN":[33,87],"OH":[33,88],"KS":[43,105],"ME":[39,16],"VT":[37,14],"ID":[40,44],"IN":[32,92],"NY":[29,62],"WY":[39,23],"NH":[26,10],"MD":[22,24],"HI":[26,4],"MA":[21,14],"NJ":[16,21],"DE":[23,3],"RI":[15,5],"CT":[18,8],"DC":[23,1]};
+const CITY_TOP=[["Kusilvak Census Area","AK",94],["Wheeler County","GA",93],["Owsley County","KY",93],["Buffalo County","SD",93],["Todd County","SD",93],["Martin County","KY",92],["Issaquena County","MS",91],["Ziebach County","SD",89],["Crowley County","CO",88],["East Carroll Parish","LA",88]];
+const NAME2ABBR={"Alabama":"AL","Alaska":"AK","Arizona":"AZ","Arkansas":"AR","California":"CA","Colorado":"CO","Connecticut":"CT","Delaware":"DE","District of Columbia":"DC","Florida":"FL","Georgia":"GA","Hawaii":"HI","Idaho":"ID","Illinois":"IL","Indiana":"IN","Iowa":"IA","Kansas":"KS","Kentucky":"KY","Louisiana":"LA","Maine":"ME","Maryland":"MD","Massachusetts":"MA","Michigan":"MI","Minnesota":"MN","Mississippi":"MS","Missouri":"MO","Montana":"MT","Nebraska":"NE","Nevada":"NV","New Hampshire":"NH","New Jersey":"NJ","New Mexico":"NM","New York":"NY","North Carolina":"NC","North Dakota":"ND","Ohio":"OH","Oklahoma":"OK","Oregon":"OR","Pennsylvania":"PA","Rhode Island":"RI","South Carolina":"SC","South Dakota":"SD","Tennessee":"TN","Texas":"TX","Utah":"UT","Vermont":"VT","Virginia":"VA","Washington":"WA","West Virginia":"WV","Wisconsin":"WI","Wyoming":"WY"};
+const stateCol=score=>cityHeatColor(Math.max(0,Math.min(100,(score-14)/44*100)));
+let CITY_ALL=[], CITY_STATES=Object.keys(STATE_AVG).map(s=>({state:s,score:STATE_AVG[s][0],count:STATE_AVG[s][1]}));
+const STATE_CENTROIDS={AL:[32.8,-86.8],AK:[63.5,-152.0],AZ:[34.3,-111.7],AR:[34.8,-92.4],CA:[37.2,-119.3],CO:[39.0,-105.5],CT:[41.6,-72.7],DE:[39.0,-75.5],DC:[38.9,-77.0],FL:[28.6,-82.4],GA:[32.6,-83.4],HI:[20.6,-157.5],ID:[44.4,-114.6],IL:[40.0,-89.2],IN:[39.9,-86.3],IA:[42.0,-93.5],KS:[38.5,-98.4],KY:[37.5,-85.3],LA:[31.0,-92.0],ME:[45.4,-69.2],MD:[39.0,-76.8],MA:[42.3,-71.8],MI:[44.3,-85.4],MN:[46.3,-94.3],MS:[32.7,-89.7],MO:[38.4,-92.5],MT:[47.0,-109.6],NE:[41.5,-99.8],NV:[39.3,-116.6],NH:[43.7,-71.6],NJ:[40.2,-74.7],NM:[34.4,-106.1],NY:[42.9,-75.5],NC:[35.5,-79.4],ND:[47.5,-100.3],OH:[40.3,-82.8],OK:[35.6,-97.5],OR:[43.9,-120.6],PA:[40.9,-77.8],RI:[41.7,-71.5],SC:[33.9,-80.9],SD:[44.4,-100.2],TN:[35.9,-86.4],TX:[31.5,-99.3],UT:[39.3,-111.7],VT:[44.1,-72.7],VA:[37.5,-78.9],WA:[47.4,-120.5],WV:[38.6,-80.6],WI:[44.6,-89.9],WY:[43.0,-107.6]};
+const TILE_GRID={AK:[1,1],ME:[1,11],VT:[2,10],NH:[2,11],WA:[3,1],ID:[3,2],MT:[3,3],ND:[3,4],MN:[3,5],IL:[3,6],WI:[3,7],MI:[3,8],NY:[3,9],MA:[3,10],RI:[3,11],OR:[4,1],NV:[4,2],WY:[4,3],SD:[4,4],IA:[4,5],IN:[4,6],OH:[4,7],PA:[4,8],NJ:[4,9],CT:[4,10],CA:[5,1],UT:[5,2],CO:[5,3],NE:[5,4],MO:[5,5],KY:[5,6],WV:[5,7],VA:[5,8],MD:[5,9],DE:[5,10],AZ:[6,2],NM:[6,3],KS:[6,4],AR:[6,5],TN:[6,6],NC:[6,7],SC:[6,8],DC:[6,9],OK:[7,4],LA:[7,5],MS:[7,6],AL:[7,7],GA:[7,8],HI:[8,1],TX:[8,4],FL:[8,9]};
+function cityHeatColor(n){
+  const t=Math.min(1,n/100);
+  const stops=[[0.0,[124,168,122]],[0.4,[212,179,76]],[0.7,[196,109,46]],[1.0,[168,50,50]]];
+  let a=stops[0],b=stops[stops.length-1];
+  for(let i=0;i<stops.length-1;i++){if(t>=stops[i][0]&&t<=stops[i+1][0]){a=stops[i];b=stops[i+1];break;}}
+  const range=b[0]-a[0]||1, k=(t-a[0])/range;
+  const rgb=a[1].map((v,i)=>Math.round(v+(b[1][i]-v)*k));
+  return `rgb(${rgb[0]},${rgb[1]},${rgb[2]})`;
+}
+function cityCountUp(el,target,dur=1800){
+  const start=performance.now();
+  function f(now){const t=Math.min(1,(now-start)/dur),e=1-Math.pow(1-t,4);
+    el.textContent=Math.round(target*e).toLocaleString();
+    if(t<1)requestAnimationFrame(f);else el.textContent=target.toLocaleString();}
+  requestAnimationFrame(f);
+}
+function cityClearTimers(){cityTimers.forEach(t=>clearInterval(t));cityTimers=[];}
+function renderCity(){
+  cityClearTimers();
+  const today=new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+  document.getElementById('view').innerHTML=`<div class="city-wrap">
+    <div class="city-col city-hero">
+      <div class="city-crumb">Replenish · National need map</div>
+      <div class="city-title">The Food Grid.</div>
+      <div class="city-geo">United States<span class="sep">·</span>${today}<span class="sep">·</span>All 50 states</div>
+      <div class="city-heroStat"><div class="city-heroNum num" id="cityHeroNum">0</div><div class="city-heroLab">U.S. counties scored 0 to 100 for food need.</div></div>
+      <p class="city-heroProse">
+        Replenish routes surplus toward the counties scored highest for food insecurity, in every state. <span class="accent">Mississippi, New Mexico, and Kentucky</span> rank most in need; wealthy suburbs rank lowest. The map below is real, built from public USDA and Census data. The live deliveries are a simulated demo of the network in motion.
+      </p>
+    </div>
+    <div class="city-col city-section">
+      <div class="city-sHead"><h2>Need across America.</h2><div class="meta">All 3,141 U.S. counties · hover for details</div></div>
+      <div class="city-mapWrap"><div id="citymap"></div>
+        <div class="city-tip" id="cityTip"></div>
+        <div class="city-legend">
+          <div class="lt">Need score · by county</div>
+          <div class="scale"><span class="sl">Lower</span><div class="bar"></div><span class="sl">Higher</span></div>
+        </div></div>
+    </div>
+    <div class="city-col city-section">
+      <div class="city-duo">
+        <div>
+          <h2 style="font-family:'Fraunces',serif;font-size:24px;font-weight:500;letter-spacing:-.02em">The wire. <span style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--amber-d);background:var(--amber-soft);padding:3px 8px;border-radius:6px;margin-left:6px;vertical-align:middle">Simulated</span></h2>
+          <div class="city-subhead">A demo of the network in motion.</div>
+          <div class="city-wire" id="cityWire"></div>
+        </div>
+        <div>
+          <h2 style="font-family:'Fraunces',serif;font-size:24px;font-weight:500;letter-spacing:-.02em">Highest need.</h2>
+          <div class="city-subhead">Real counties, nationwide, from the model.</div>
+          <table class="city-counties"><thead><tr><th>County</th><th class="r">Need</th></tr></thead><tbody id="cityTable"></tbody></table>
+        </div>
+      </div>
+    </div>
+    <div class="city-col city-method">
+      <h3>How the need score works</h3>
+      <div style="display:flex;gap:9px;flex-wrap:wrap;margin:14px 0 20px">
+        <span style="background:var(--paper,#efece3);border:1px solid var(--line);border-radius:20px;padding:6px 13px;font-size:12.5px;font-weight:600;color:var(--ink2)">3,141 counties scored</span>
+        <span style="background:var(--paper,#efece3);border:1px solid var(--line);border-radius:20px;padding:6px 13px;font-size:12.5px;font-weight:600;color:var(--ink2)">0 to 100 scale</span>
+        <span style="background:var(--paper,#efece3);border:1px solid var(--line);border-radius:20px;padding:6px 13px;font-size:12.5px;font-weight:600;color:var(--ink2)">Offline · no API keys</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px;max-width:560px;margin-bottom:18px">
+        ${[['Food insecurity (USDA + Census)',40],['Grocery access (USDA Food Access Atlas)',30],['Poverty rate (Census ACS)',20],['Median income (Census ACS)',10]].map(([l,w])=>`<div style="display:flex;align-items:center;gap:12px"><div style="flex:1;font-size:13px;font-weight:600;color:var(--ink2)">${l}</div><div style="width:150px;height:8px;background:var(--paper,#ece9e0);border-radius:5px;overflow:hidden"><i style="display:block;height:100%;width:${w}%;background:linear-gradient(90deg,#34c285,#0f8657);border-radius:5px"></i></div><div style="width:36px;text-align:right;font-weight:700;font-size:13px">${w}%</div></div>`).join('')}
+      </div>
+      <p style="font-size:12.5px;color:var(--muted);line-height:1.6;max-width:640px">Methodology follows Feeding America's Map the Meal Gap (Gundersen et al.). Donations are protected under the Bill Emerson Good Samaritan Food Donation Act (1996) and the Food Donation Improvement Act (2022).</p>
+      <div class="sources"><span>USDA · ers.usda.gov</span><span>Feeding America · mapthemealgap.org</span><span>U.S. Census ACS</span><span>OpenStreetMap</span></div>
+      <div class="closing">Civic infrastructure for the cities of tomorrow.</div>
+    </div>
+  </div>`;
+  setTimeout(initCityMap,60);
+  cityCountUp(document.getElementById('cityHeroNum'),3141);
+  renderCityWire(CITY_WIRE);
+  let cwirePtr=0;
+  cityTimers.push(setInterval(()=>{cwirePtr=(cwirePtr+1)%CITY_WIRE.length;const reord=[{...CITY_WIRE[cwirePtr],_fresh:true},...CITY_WIRE.filter((_,i)=>i!==cwirePtr)];renderCityWire(reord);},6500));
+  const src=CITY_ALL.length?[...CITY_ALL].sort((a,b)=>b.need_score-a.need_score).slice(0,10).map(c=>[c.area,c.state,c.need_score]):CITY_TOP;
+  document.getElementById('cityTable').innerHTML=src.map(([area,st,sc])=>{const col=cityHeatColor(sc);return `<tr><td class="name">${area}, ${st}</td><td class="r"><span class="scoreCell"><span class="scoreDot" style="background:${col}"></span>${sc}</span></td></tr>`;}).join('');
+}
+function renderCityWire(items){
+  const el=document.getElementById('cityWire');if(!el)return;
+  el.innerHTML='';
+  items.slice(0,7).forEach((it,i)=>{
+    const row=document.createElement('div');
+    row.className='city-wireItem'+(i===0&&it._fresh?' fresh':'');
+    row.innerHTML=`<div class="city-wireTime num">${it.t}</div><div class="city-wireText">${it.html}</div>`;
+    el.appendChild(row);
+  });
+}
+let USTOPO_CACHE=null;
+async function initCityMap(){
+  const c=document.getElementById('citymap');if(!c)return;
+  if(cmap){try{cmap.remove();}catch(e){}cmap=null;}
+  c.innerHTML='<div class="city-loading">Plotting 3,141 counties…</div>';
+  // Need D3 + topojson loaded; otherwise fall back to the CSS tile map
+  if(typeof d3==='undefined'||typeof topojson==='undefined'){return cityTileFallback(c);}
+  // Load the county topology (sibling file first, then CDN)
+  if(!USTOPO_CACHE){
+    const urls=['./us-counties.json','https://cdn.jsdelivr.net/npm/us-atlas@3/counties-albers-10m.json'];
+    let data=null;
+    for(const u of urls){
+      try{const r=await fetch(u); if(r.ok){data=await r.json(); break;}}catch(e){}
+    }
+    if(!data) return cityTileFallback(c);
+    USTOPO_CACHE=data;
+  }
+  const topo=USTOPO_CACHE;
+  c.innerHTML='';
+  // Build FIPS → need score lookup from AREA_NEED (populated by loadNeed at boot)
+  const fipsScore={};
+  Object.keys(AREA_NEED).forEach(k=>{
+    if(k.startsWith('fips:')){const f=k.slice(5).padStart(5,'0');fipsScore[f]=AREA_NEED[k];}
+  });
+  // Build SVG
+  const svg=d3.select(c).append('svg')
+    .attr('viewBox','0 0 975 610')
+    .attr('preserveAspectRatio','xMidYMid meet');
+  const counties=topojson.feature(topo,topo.objects.counties);
+  const statesMesh=topojson.mesh(topo,topo.objects.states,(a,b)=>a!==b);
+  const path=d3.geoPath();
+  const tip=document.getElementById('cityTip');
+  const wrap=c.parentElement;
+  // Counties (staggered fade-in)
+  svg.append('g').selectAll('path.county')
+    .data(counties.features)
+    .join('path')
+    .attr('class','county')
+    .attr('d',path)
+    .attr('fill',d=>{
+      const fips=String(d.id).padStart(5,'0');
+      const s=fipsScore[fips];
+      return s===undefined?'#ebe6d8':cityHeatColor(s);
+    })
+    .style('opacity',0)
+    .on('mouseenter',function(event,d){
+      const fips=String(d.id).padStart(5,'0');
+      const s=fipsScore[fips];
+      const name=(d.properties&&d.properties.name)||'Unknown';
+      if(tip){
+        tip.innerHTML=`<b>${name} County</b><span class="num">${s!==undefined?'Need score '+s:'No data'}</span>`;
+        tip.style.display='block';
+      }
+    })
+    .on('mousemove',function(event){
+      if(!tip||!wrap) return;
+      const r=wrap.getBoundingClientRect();
+      let x=event.clientX-r.left+14, y=event.clientY-r.top+14;
+      // Keep tooltip inside the map
+      const tw=tip.offsetWidth, th=tip.offsetHeight;
+      if(x+tw>r.width-8) x=event.clientX-r.left-tw-10;
+      if(y+th>r.height-8) y=event.clientY-r.top-th-10;
+      tip.style.left=x+'px'; tip.style.top=y+'px';
+    })
+    .on('mouseleave',function(){
+      if(tip) tip.style.display='none';
+    })
+    .transition()
+    .delay(()=>Math.random()*700)
+    .duration(650)
+    .style('opacity',1);
+  // Safety: when the mouse leaves the map entirely, hide the tooltip no matter what
+  svg.on('mouseleave',()=>{ if(tip) tip.style.display='none'; });
+  // State borders (drawn on top, fade in after counties)
+  svg.append('path')
+    .datum(statesMesh)
+    .attr('d',path)
+    .attr('fill','none')
+    .attr('stroke','rgba(22,27,23,0.55)')
+    .attr('stroke-width',0.75)
+    .attr('stroke-linejoin','round')
+    .style('opacity',0)
+    .transition()
+    .delay(700)
+    .duration(500)
+    .style('opacity',1);
+}
+function cityTileFallback(c){
+  const W=11,H=8,cell=100;
+  let svg=`<svg viewBox="0 0 ${W*cell} ${H*cell}" preserveAspectRatio="xMidYMid meet" style="width:100%;height:100%;display:block">`;
+  CITY_STATES.forEach(s=>{
+    const pos=TILE_GRID[s.state]; if(!pos) return;
+    const x=(pos[1]-1)*cell, y=(pos[0]-1)*cell;
+    const col=stateCol(s.score);
+    const txt=(s.score-14)/44*100>50?'#fff':'#17251d';
+    svg+=`<g><rect x="${x+5}" y="${y+5}" width="${cell-10}" height="${cell-10}" rx="15" fill="${col}" stroke="#fbf9f2" stroke-width="2"><title>${s.state} · avg need ${s.score}</title></rect>`
+      +`<text x="${x+cell/2}" y="${y+cell/2-3}" text-anchor="middle" font-size="31" font-weight="700" fill="${txt}" font-family="'Plus Jakarta Sans',system-ui,sans-serif">${s.state}</text>`
+      +`<text x="${x+cell/2}" y="${y+cell/2+27}" text-anchor="middle" font-size="23" fill="${txt}" opacity=".82" font-family="'Plus Jakarta Sans',system-ui,sans-serif">${s.score}</text></g>`;
+  });
+  svg+=`</svg>`; c.innerHTML=svg;
+}
+
+/* ======================= NEED INDEX (sister) ======================= */
+async function loadNeed(){
+  // Load the real national Need Index (3,141 counties). Overrides the NJ fallback above.
+  for(const f of ['need_index.min.json','need_index.json']){
+    try{const r=await fetch(f,{cache:'no-store'});if(!r.ok)continue;const j=await r.json();
+      if(j.areas){
+        j.areas.forEach(a=>{
+          if(typeof a.need_score!=='number') return;
+          // NJ-keyed by area name (used by the rest of the app for shelter scoring)
+          if(a.state==='NJ' && a.area) AREA_NEED[a.area]=a.need_score;
+          // ALL counties keyed by FIPS — required by the national choropleth in City view
+          if(a.fips) AREA_NEED['fips:'+String(a.fips).padStart(5,'0')]=a.need_score;
+        });
+        CITY_ALL=j.areas;
+        const g={}; j.areas.forEach(a=>{(g[a.state]=g[a.state]||[]).push(a.need_score);});
+        CITY_STATES=Object.keys(g).map(s=>({state:s,score:Math.round(g[s].reduce((x,y)=>x+y,0)/g[s].length),count:g[s].length}));
+        if(me.role==='city'){ initCityMap(); const t=document.getElementById('cityTable'); if(t&&!t.children.length) renderCity(); }
+        return;
+      }
+    }catch(e){}
+  }
+}
+
+/* ======================= PERSISTENCE ======================= */
+function saveDB(){try{localStorage.setItem('replenish_v1',JSON.stringify({DB,me,LSEQ,CSEQ,SSEQ,PSEQ,DSEQ}));}catch(e){}}
+function loadDB(){try{const s=localStorage.getItem('replenish_v1');if(!s)return false;const o=JSON.parse(s);
+  if(o.DB){DB.stores=o.DB.stores;DB.pantries=o.DB.pantries;DB.drivers=o.DB.drivers;DB.listings=o.DB.listings;DB.claims=o.DB.claims;DB.strikes=o.DB.strikes||[];}
+  if(o.me)Object.assign(me,o.me);
+  LSEQ=o.LSEQ||LSEQ;CSEQ=o.CSEQ||CSEQ;SSEQ=o.SSEQ||SSEQ;PSEQ=o.PSEQ||PSEQ;DSEQ=o.DSEQ||DSEQ;
+  return true;}catch(e){return false;}}
+function resetDemo(){try{localStorage.removeItem('replenish_v1');}catch(e){}location.reload();}
+
+/* ======================= SEED + BOOT ======================= */
+function seed(){
+  const mk=(sid,cat,lbs,deadline,hrs)=>{const s=store(sid);const id="L"+(LSEQ++);
+    DB.listings.push({id,storeId:s.id,storeName:s.name,area:s.area,lat:s.lat,lng:s.lng,category:cat,lbs,available:lbs,deadline,expiresAt:Date.now()+hrs*3600000,createdAt:Date.now()});return id;};
+  const claimL=(lid,pid,lbs)=>DB.claims.push({id:"C"+(CSEQ++),listingId:lid,pantryId:pid,lbs,driverId:null,status:'awaiting'});
+  // live listings so pantry view has content (varied expiry -> varied urgency)
+  const a=mk("st2","Vegetables",120,"by 6pm",1.5);   // urgent
+  const b=mk("st3","Bread & Bakery",70,"by tonight",5);
+  const c=mk("st1","Fruits",90,"by 7pm",1.0);         // urgent
+  const d=mk("st4","Dairy",100,"by noon",20);
+  // pantry claims of varying need + distance -> become the driver's delivery runs
+  claimL(a,"pa1",60);  // Newark      · Essex 23
+  claimL(b,"pa3",40);  // Paterson    · Passaic 20
+  claimL(c,"pa4",50);  // Elizabeth   · Union 12
+  claimL(d,"pa6",40);  // Morristown  · Morris 8
+  claimL(b,"pa7",25);  // Warren      · Somerset 8
+}
+loadNeed();
+if(!loadDB()){ seed(); saveDB(); }
+</script>
+</body>
+</html>
