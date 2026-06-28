@@ -7,220 +7,329 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
 <style>
+/* ================================================================
+   Replenish — editorial system
+   All class names preserved; only visual values restyled.
+   ================================================================ */
 :root{
-  --bg:#f3f1e9; --surface:#ffffff; --ink:#18221d; --ink2:#3b4a41;
-  --muted:#6e7c72; --faint:#a4afa5; --line:#eae6db; --line2:#ddd8cb;
-  --green:#10885a; --green-d:#0b6c47; --green-soft:#e7f3ec; --green-tint:#f3f8f4;
-  --amber:#d4772f; --amber-soft:#f8ecdf; --amber-d:#b75f20;
-  --blue:#3a78a6; --blue-soft:#e9f1f7;
-  --red:#d6544b; --red-soft:#f9e8e6;
-  --gold:#bd9a37; --gold-soft:#f5eed8;
-  --shadow-sm:0 1px 2px rgba(24,34,29,.04),0 2px 7px rgba(24,34,29,.05);
-  --shadow:0 2px 6px rgba(24,34,29,.05),0 16px 40px -16px rgba(24,34,29,.16);
-  --shadow-lg:0 4px 14px rgba(24,34,29,.06),0 34px 72px -22px rgba(24,34,29,.28);
-  --r:18px;
+  --bg:#f5f2e8; --surface:#fbf9f2; --paper:#fefcf6;
+  --ink:#161b17; --ink2:#3d4842;
+  --muted:#7a847e; --faint:#b1b8b3;
+  --line:#e4dfd1; --line2:#cfc9b5;
+  --green:#0d6644; --green-d:#084a30; --green-soft:#e3ede7; --green-tint:#eef3ec;
+  --amber:#b86a2c; --amber-soft:#efe5d4; --amber-d:#8e4f1d;
+  --blue:#3d6585; --blue-soft:#e3ebf0;
+  --red:#a83232; --red-soft:#eedcd9;
+  --gold:#a3852e; --gold-soft:#ece5d0;
+  --shadow-sm:0 1px 0 rgba(22,27,23,.03);
+  --shadow:0 1px 3px rgba(22,27,23,.05),0 8px 24px -14px rgba(22,27,23,.14);
+  --shadow-lg:0 2px 6px rgba(22,27,23,.06),0 28px 56px -22px rgba(22,27,23,.22);
+  --r:10px;
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%}
-body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:radial-gradient(135% 95% at 50% -6%,#fbfaf5 0%,var(--bg) 58%);color:var(--ink);-webkit-font-smoothing:antialiased;font-optical-sizing:auto;height:100%;overflow:hidden}
-h1,h2,h3,.section-h,.vq,.card-title{font-feature-settings:"ss01";letter-spacing:-.015em}
+body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased;font-optical-sizing:auto;font-feature-settings:"kern","liga","ss01";height:100%;overflow:hidden}
+h1,h2,h3,.section-h,.vq,.card-title{font-feature-settings:"ss01";letter-spacing:-.02em}
 button{font-family:inherit}
 .hidden{display:none!important}
-::-webkit-scrollbar{width:9px;height:9px}::-webkit-scrollbar-thumb{background:var(--line2);border-radius:8px}
+.num{font-variant-numeric:tabular-nums lining-nums}
+::-webkit-scrollbar{width:6px;height:6px}::-webkit-scrollbar-thumb{background:var(--line2);border-radius:6px}
 
 /* ===== ROLE PICKER ===== */
 .picker{position:fixed;inset:0;z-index:2000;display:grid;place-items:center;padding:24px;
-  background:radial-gradient(130% 120% at 50% -10%,#e9f5ee 0%,#f5f4ee 55%);overflow:auto}
-.picker-inner{width:100%;max-width:860px;text-align:center;padding:20px 0}
-.plogo{width:64px;height:64px;border-radius:19px;display:grid;place-items:center;margin:0 auto 20px;
-  background:linear-gradient(145deg,#34c285,#0f8657);box-shadow:0 16px 34px -12px rgba(21,160,106,.65)}
-.plogo svg{width:35px;height:35px}
-.picker h1{font-family:'Fraunces',serif;font-weight:600;font-size:40px;letter-spacing:-.02em;line-height:1.1}
-.picker .lede{font-size:16px;color:var(--muted);max-width:520px;margin:14px auto 0;line-height:1.55}
-.roles{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:34px}
-.role-card{background:var(--surface);border:1px solid var(--line);border-radius:22px;padding:26px 22px;cursor:pointer;
-  text-align:left;transition:.18s;box-shadow:var(--shadow-sm);position:relative;overflow:hidden}
-.role-card:hover{transform:translateY(-4px);box-shadow:var(--shadow);border-color:var(--line2)}
-.role-card .emoji{width:50px;height:50px;border-radius:14px;display:grid;place-items:center;font-size:25px;margin-bottom:16px}
-.role-card.store .emoji{background:var(--amber-soft)} .role-card.pantry .emoji{background:var(--green-soft)} .role-card.driver .emoji{background:var(--blue-soft)}
-.role-card h3{font-family:'Fraunces',serif;font-weight:600;font-size:20px;margin-bottom:7px}
-.role-card p{font-size:13.5px;color:var(--muted);line-height:1.5}
-.role-card .go{margin-top:16px;font-size:13px;font-weight:700;color:var(--green-d);display:flex;align-items:center;gap:6px}
-.picker .foot{font-size:13px;color:var(--faint);margin-top:30px}
+  background:var(--bg);overflow:auto}
+.picker-inner{width:100%;max-width:980px;text-align:left;padding:40px 28px}
+.plogo{width:44px;height:44px;border-radius:10px;display:grid;place-items:center;margin:0 0 32px;
+  background:var(--green)}
+.plogo svg{width:24px;height:24px}
+.picker h1{font-family:'Fraunces',serif;font-weight:400;font-size:64px;letter-spacing:-.025em;line-height:1;color:var(--ink)}
+.picker .lede{font-size:17px;color:var(--ink2);max-width:580px;margin:18px 0 0;line-height:1.55;font-weight:400}
+.roles{display:grid;grid-template-columns:repeat(4,1fr);gap:0;margin-top:48px;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.role-card{background:transparent;border:none;border-right:1px solid var(--line);padding:32px 28px 30px;cursor:pointer;
+  text-align:left;transition:background .18s;position:relative}
+.role-card:last-child{border-right:none}
+.role-card:hover{background:var(--paper)}
+.role-card .emoji{width:auto;height:auto;border-radius:0;background:transparent!important;display:block;font-size:0;color:transparent;margin:0 0 22px;padding:0}
+.role-card.store .emoji::before{content:"01 · For grocers"}
+.role-card.pantry .emoji::before{content:"02 · For food banks"}
+.role-card.driver .emoji::before{content:"03 · For volunteers"}
+.role-card.city .emoji::before{content:"04 · For the public"}
+.role-card .emoji::before{font-size:10.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);display:block;font-family:'Plus Jakarta Sans',sans-serif;font-variant-numeric:tabular-nums}
+.role-card h3{font-family:'Fraunces',serif;font-weight:500;font-size:26px;letter-spacing:-.02em;margin-bottom:11px;color:var(--ink);line-height:1.15}
+.role-card p{font-size:14px;color:var(--ink2);line-height:1.6;font-weight:400}
+.role-card .go{margin-top:20px;font-size:13px;font-weight:600;color:var(--green-d);display:inline-flex;align-items:center;gap:6px;letter-spacing:.01em;border-bottom:1px solid var(--green-d);padding-bottom:2px}
+.picker .foot{font-size:12.5px;color:var(--muted);margin-top:36px;font-weight:400;letter-spacing:.01em}
+.picker .foot a{color:var(--ink2);text-decoration:underline;text-underline-offset:3px}
 
 /* ===== APP SHELL ===== */
 #app{height:100%;display:flex;flex-direction:column}
-.bar{display:flex;align-items:center;justify-content:space-between;padding:13px 22px;background:var(--surface);border-bottom:1px solid var(--line);flex-shrink:0;z-index:50}
+.bar{display:flex;align-items:center;justify-content:space-between;padding:14px 32px;background:var(--paper);border-bottom:1px solid var(--line);flex-shrink:0;z-index:50}
 .bar .brand{display:flex;align-items:center;gap:11px}
-.bar .mark{width:32px;height:32px;border-radius:9px;display:grid;place-items:center;background:linear-gradient(145deg,#34c285,#0f8657)}
-.bar .mark svg{width:18px;height:18px}
-.bar h1{font-family:'Fraunces',serif;font-weight:600;font-size:18px}
-.switch{display:flex;background:var(--bg);border:1px solid var(--line);border-radius:13px;padding:4px;gap:3px}
-.switch button{border:none;background:transparent;color:var(--muted);font-weight:600;font-size:13px;padding:8px 15px;border-radius:9px;cursor:pointer;transition:.15s;display:flex;align-items:center;gap:7px}
-.switch button.on{background:var(--surface);color:var(--ink);box-shadow:var(--shadow-sm)}
+.bar .mark{width:28px;height:28px;border-radius:7px;display:grid;place-items:center;background:var(--green)}
+.bar .mark svg{width:16px;height:16px}
+.bar h1{font-family:'Fraunces',serif;font-weight:500;font-size:17px;letter-spacing:-.01em}
+.switch{display:flex;border:1px solid var(--line);border-radius:8px;background:var(--paper);padding:3px;gap:1px}
+.switch button{border:none;background:transparent;color:var(--muted);font-weight:500;font-size:12.5px;padding:7px 14px;border-radius:6px;cursor:pointer;transition:.15s;display:flex;align-items:center;gap:6px;letter-spacing:.01em}
+.switch button>span{font-weight:500}
+.switch button.on{background:var(--ink);color:#fff}
+.switch button:not(.on):hover{color:var(--ink)}
 .who{display:flex;align-items:center;gap:10px}
-.who .ava{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;font-weight:700;font-size:14px;color:#fff}
-.who .meta{text-align:right} .who .meta .n{font-weight:700;font-size:13.5px;line-height:1.1} .who .meta .s{font-size:11.5px;color:var(--muted)}
-.who .exit{margin-left:4px;border:1px solid var(--line);background:var(--surface);color:var(--muted);border-radius:10px;width:34px;height:34px;cursor:pointer;font-size:15px}
-.who .exit:hover{color:var(--ink)}
+.who .ava{width:30px;height:30px;border-radius:7px;display:grid;place-items:center;font-weight:600;font-size:12.5px;color:#fff;letter-spacing:.01em}
+.who .meta{text-align:right} .who .meta .n{font-weight:600;font-size:13px;line-height:1.2;letter-spacing:-.005em} .who .meta .s{font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.who .exit{margin-left:4px;border:1px solid var(--line);background:transparent;color:var(--muted);border-radius:7px;width:30px;height:30px;cursor:pointer;font-size:14px}
+.who .exit:hover{color:var(--ink);border-color:var(--line2)}
 
 .view{flex:1;overflow:hidden;display:flex}
-.col{flex:1;overflow-y:auto;padding:26px 30px}
-.col.narrow{max-width:560px;margin:0 auto}
-.section-h{font-family:'Fraunces',serif;font-weight:600;font-size:25px;letter-spacing:-.01em}
-.section-sub{font-size:14px;color:var(--muted);margin-top:5px;line-height:1.5}
+.col{flex:1;overflow-y:auto;padding:36px 40px}
+.col.narrow{max-width:600px;margin:0 auto}
+.section-h{font-family:'Fraunces',serif;font-weight:500;font-size:36px;letter-spacing:-.025em;color:var(--ink);line-height:1.05}
+.section-sub{font-size:14.5px;color:var(--ink2);margin-top:10px;line-height:1.6;max-width:680px;font-weight:400}
+.section-sub b{font-weight:600;color:var(--ink)}
 
-.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow-sm)}
-.pad{padding:20px}
-.mt{margin-top:18px}.mt2{margin-top:12px}
+.card{background:var(--paper);border:1px solid var(--line);border-radius:var(--r);box-shadow:none}
+.pad{padding:24px}
+.mt{margin-top:28px}.mt2{margin-top:14px}
 
-.label{font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--faint);margin-bottom:9px;display:block}
-.tabs{display:flex;gap:7px;margin-bottom:16px}
-.tab{flex:1;border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:11px;font-weight:700;font-size:13.5px;color:var(--muted);cursor:pointer;transition:.15s;display:flex;align-items:center;justify-content:center;gap:8px}
-.tab.on{border-color:var(--green);background:var(--green-tint);color:var(--green-d)}
-textarea,input,select{font-family:inherit;width:100%;border:1.5px solid var(--line);border-radius:12px;padding:13px 14px;font-size:14.5px;color:var(--ink);background:var(--surface);transition:.15s;outline:none}
-textarea:focus,input:focus,select:focus{border-color:var(--green)}
-textarea{resize:none;min-height:96px;line-height:1.5}
+.label{font-size:10.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:12px;display:block}
+.tabs{display:flex;gap:0;margin-bottom:20px;border-bottom:1px solid var(--line)}
+.tab{flex:1;border:none;background:transparent;border-radius:0;padding:13px 6px 13px;font-weight:500;font-size:13px;color:var(--muted);cursor:pointer;transition:.15s;display:flex;align-items:center;justify-content:center;gap:8px;border-bottom:2px solid transparent;margin-bottom:-1px;letter-spacing:.01em}
+.tab.on{border-bottom-color:var(--ink);color:var(--ink);background:transparent}
+.tab:hover:not(.on){color:var(--ink2)}
+textarea,input,select{font-family:inherit;width:100%;border:1px solid var(--line2);border-radius:7px;padding:12px 14px;font-size:14px;color:var(--ink);background:var(--paper);transition:.15s;outline:none;font-feature-settings:"kern","liga"}
+textarea:focus,input:focus,select:focus{border-color:var(--ink);background:#fff}
+textarea{resize:none;min-height:90px;line-height:1.55}
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .row3{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:12px}
 
-.btn{border:none;cursor:pointer;font-weight:600;font-size:14.5px;padding:14px;border-radius:12px;background:var(--green);color:#fff;width:100%;transition:.18s cubic-bezier(.2,.8,.2,1);display:flex;align-items:center;justify-content:center;gap:9px;box-shadow:0 1px 2px rgba(24,34,29,.14),0 7px 16px -10px rgba(24,34,29,.3);letter-spacing:.01em}
-.btn:hover{background:var(--green-d);transform:translateY(-1px);box-shadow:0 2px 4px rgba(24,34,29,.16),0 12px 22px -10px rgba(24,34,29,.34)}
-.btn.sec{background:var(--green-soft);color:var(--green-d);box-shadow:none}
-.btn.sec:hover{background:#dcefe3;box-shadow:none}
+.btn{border:none;cursor:pointer;font-weight:500;font-size:14px;padding:13px 20px;border-radius:7px;background:var(--ink);color:#fff;width:100%;transition:.15s;display:flex;align-items:center;justify-content:center;gap:9px;letter-spacing:.01em;box-shadow:none}
+.btn:hover{background:var(--green-d);transform:none}
+.btn.sec{background:transparent;color:var(--ink);border:1px solid var(--line2);box-shadow:none}
+.btn.sec:hover{background:var(--green-tint);border-color:var(--green-d);color:var(--green-d)}
 .btn.amber{background:var(--amber)}.btn.amber:hover{background:var(--amber-d)}
-.btn.sm{padding:10px 16px;font-size:13px;width:auto}
-.btn.blue{background:var(--blue)}.btn.blue:hover{filter:brightness(.95)}
+.btn.sm{padding:9px 16px;font-size:12.5px;width:auto;border-radius:6px}
+.btn.blue{background:var(--blue)}.btn.blue:hover{background:#2e4f6b}
 
 /* parse preview */
-.parsed{background:var(--green-tint);border:1px solid var(--green-soft);border-radius:13px;padding:15px;margin-top:14px}
-.parsed .pl{font-size:12px;color:var(--green-d);font-weight:700;display:flex;align-items:center;gap:7px;margin-bottom:11px}
-.pchips{display:flex;gap:8px;flex-wrap:wrap}
-.pchip{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 12px;font-size:13px}
-.pchip b{font-weight:700} .pchip .k{font-size:10.5px;color:var(--faint);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:1px}
+.parsed{background:var(--green-tint);border:1px solid var(--green-soft);border-radius:8px;padding:18px;margin-top:16px}
+.parsed .pl{font-size:10.5px;color:var(--green-d);font-weight:700;display:flex;align-items:center;gap:7px;margin-bottom:14px;letter-spacing:.14em;text-transform:uppercase}
+.pchips{display:flex;gap:0;flex-wrap:wrap;border-top:1px solid var(--green-soft);border-bottom:1px solid var(--green-soft);background:#fff}
+.pchip{background:transparent;border:none;border-right:1px solid var(--green-soft);border-radius:0;padding:11px 16px;font-size:13.5px;flex:1;min-width:120px}
+.pchip:last-child{border-right:none}
+.pchip b{font-weight:600;font-family:'Fraunces',serif;font-size:16px;display:block;margin-top:2px}
+.pchip .k{font-size:9.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.14em;display:block;font-weight:700}
 
 /* chips / needs */
-.needchips{display:flex;flex-wrap:wrap;gap:8px}
-.nchip{border:1.5px solid var(--line);background:var(--surface);border-radius:11px;padding:9px 13px;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;transition:.15s;display:flex;align-items:center;gap:7px}
-.nchip.on{border-color:var(--green);background:var(--green-tint);color:var(--green-d)}
-.nchip .x{opacity:.6}
+.needchips{display:flex;flex-wrap:wrap;gap:6px}
+.nchip{border:1px solid var(--line2);background:var(--paper);border-radius:6px;padding:8px 12px;font-size:13px;font-weight:500;color:var(--ink2);cursor:pointer;transition:.15s;display:flex;align-items:center;gap:7px}
+.nchip:hover{border-color:var(--ink2)}
+.nchip.on{border-color:var(--ink);background:var(--ink);color:#fff}
+.nchip .x{opacity:.6;font-size:11px}
 
 /* listing / opportunity items */
-.item{border:1px solid var(--line);border-radius:15px;padding:16px;margin-bottom:13px;background:var(--surface);transition:.15s}
+.item{border:1px solid var(--line);border-radius:8px;padding:18px;margin-bottom:10px;background:var(--paper);transition:.15s}
 .item:hover{border-color:var(--line2)}
 .item .ih{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
-.item .title{font-weight:700;font-size:15.5px;display:flex;align-items:center;gap:9px}
-.item .meta{font-size:13px;color:var(--muted);margin-top:4px;display:flex;gap:14px;flex-wrap:wrap}
-.item .meta b{color:var(--ink2)}
-.cat-pill{font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;background:var(--amber-soft);color:var(--amber-d);white-space:nowrap}
-.badge{font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;white-space:nowrap;display:inline-flex;align-items:center;gap:5px}
-.badge.prio{background:var(--red-soft);color:var(--red)}
-.badge.med{background:var(--gold-soft);color:var(--gold)}
-.badge.low{background:var(--green-soft);color:var(--green-d)}
-.badge.time{background:var(--blue-soft);color:var(--blue)}
-.badge.status{background:var(--bg);color:var(--muted);border:1px solid var(--line)}
-.barline{height:7px;border-radius:5px;background:var(--bg);overflow:hidden;margin-top:12px}
-.barline i{display:block;height:100%;background:linear-gradient(90deg,#34c285,#0f8657);border-radius:5px;transition:width .5s}
-.item .foot{display:flex;align-items:center;gap:10px;margin-top:13px}
-.claimbox{display:flex;align-items:center;border:1.5px solid var(--line);border-radius:11px;overflow:hidden}
-.claimbox button{width:34px;height:40px;border:none;background:var(--bg);color:var(--ink);cursor:pointer;font-size:17px}
-.claimbox button:hover{background:var(--line)}
-.claimbox input{width:62px;height:40px;border:none;text-align:center;font-weight:700;font-size:14px;border-radius:0}
-.timeline{margin-top:13px;display:flex;gap:0}
+.item .title{font-weight:600;font-size:15px;display:flex;align-items:center;gap:10px;letter-spacing:-.005em}
+.item .meta{font-size:12.5px;color:var(--muted);margin-top:5px;display:flex;gap:14px;flex-wrap:wrap;font-variant-numeric:tabular-nums}
+.item .meta b{color:var(--ink2);font-weight:600}
+.cat-pill{font-size:10.5px;font-weight:700;padding:3px 9px;border-radius:3px;background:transparent;color:var(--amber-d);border:1px solid var(--amber);white-space:nowrap;letter-spacing:.04em}
+.badge{font-size:10px;font-weight:700;padding:3px 8px;border-radius:3px;white-space:nowrap;display:inline-flex;align-items:center;gap:5px;letter-spacing:.08em;text-transform:uppercase}
+.badge.prio{background:var(--red);color:#fff}
+.badge.med{background:var(--gold);color:#fff}
+.badge.low{background:var(--green-d);color:#fff}
+.badge.time{background:transparent;color:var(--ink2);border:1px solid var(--line2)}
+.badge.status{background:transparent;color:var(--muted);border:1px solid var(--line2)}
+.barline{height:3px;border-radius:2px;background:var(--line);overflow:hidden;margin-top:14px}
+.barline i{display:block;height:100%;background:var(--green-d);border-radius:2px;transition:width .5s}
+.item .foot{display:flex;align-items:center;gap:10px;margin-top:14px}
+.claimbox{display:flex;align-items:center;border:1px solid var(--line2);border-radius:6px;overflow:hidden;background:var(--paper)}
+.claimbox button{width:34px;height:38px;border:none;background:transparent;color:var(--ink);cursor:pointer;font-size:16px}
+.claimbox button:hover{background:var(--bg)}
+.claimbox input{width:80px;height:38px;border:none;text-align:center;font-weight:600;font-size:14px;border-radius:0;background:transparent}
+.timeline{margin-top:14px;display:flex;gap:0}
 .tl{flex:1;text-align:center;position:relative}
-.tl .d{width:14px;height:14px;border-radius:50%;background:var(--line);margin:0 auto 6px;border:2px solid var(--surface);box-shadow:0 0 0 1px var(--line2);position:relative;z-index:2}
-.tl.done .d{background:var(--green)} .tl.act .d{background:var(--green);box-shadow:0 0 0 4px var(--green-soft)}
-.tl::before{content:"";position:absolute;top:7px;left:-50%;width:100%;height:2px;background:var(--line)}
+.tl .d{width:10px;height:10px;border-radius:50%;background:var(--line2);margin:0 auto 7px;border:2px solid var(--paper);position:relative;z-index:2}
+.tl.done .d{background:var(--green-d)} .tl.act .d{background:var(--ink);box-shadow:0 0 0 3px var(--line)}
+.tl::before{content:"";position:absolute;top:6px;left:-50%;width:100%;height:1px;background:var(--line2)}
 .tl:first-child::before{display:none}
-.tl.done::before,.tl.act::before{background:var(--green)}
-.tl .lab{font-size:11px;color:var(--muted);font-weight:600}
+.tl.done::before,.tl.act::before{background:var(--green-d)}
+.tl .lab{font-size:10.5px;color:var(--muted);font-weight:500;letter-spacing:.01em}
 .tl.done .lab,.tl.act .lab{color:var(--ink)}
 
-.empty{text-align:center;padding:48px 20px;color:var(--faint)}
-.empty .e{font-size:34px;margin-bottom:10px}
-.empty p{font-size:14px;max-width:280px;margin:0 auto;line-height:1.5}
+.empty{text-align:center;padding:56px 20px;color:var(--muted)}
+.empty .e{font-size:22px;margin-bottom:14px;opacity:.5}
+.empty p{font-size:13.5px;max-width:320px;margin:0 auto;line-height:1.6;color:var(--muted)}
 
 /* split (driver + pantry) */
 .driver-wrap,.split-wrap{display:flex;width:100%;height:100%}
-.driver-list{width:430px;flex-shrink:0;overflow-y:auto;padding:24px;border-right:1px solid var(--line);background:var(--surface)}
-.split-list{width:530px;flex-shrink:0;overflow-y:auto;padding:26px 28px;border-right:1px solid var(--line);background:var(--surface)}
-#dmap,#pmap,#smap{flex:1;height:100%;min-height:300px}
-.impact-strip{display:flex;gap:10px;margin-top:18px}
-.ip{flex:1;background:linear-gradient(160deg,#fbfdfb,var(--bg));border:1px solid var(--line);border-radius:15px;padding:14px 15px}
-.ipn{font-family:'Fraunces',serif;font-weight:600;font-size:24px;color:var(--green-d);line-height:1}
-.ipl{font-size:11.5px;color:var(--muted);margin-top:5px;font-weight:600;letter-spacing:.01em}
-.card-title{font-family:'Fraunces',serif;font-weight:600;font-size:18px;display:flex;align-items:center;gap:9px;flex-wrap:wrap}
-.need-counter{font-size:12px;font-weight:700;color:var(--green-d);background:var(--green-soft);padding:3px 11px;border-radius:20px;margin-left:auto}
-.card-desc{font-size:13px;color:var(--muted);line-height:1.55;margin:8px 0 15px}
-.card-desc b{color:var(--ink2);font-weight:700}
-.cat-ic{width:48px;height:48px;border-radius:14px;background:linear-gradient(160deg,#fbfdfb,var(--bg));border:1px solid var(--line);display:grid;place-items:center;font-size:23px;flex-shrink:0}
-.item.rich{padding:15px}
-.claimed-row{margin-top:13px;font-size:13px;color:var(--green-d);font-weight:600;background:var(--green-tint);padding:11px 13px;border-radius:12px;display:flex;align-items:center;gap:8px}
+.driver-list{width:460px;flex-shrink:0;overflow-y:auto;padding:36px 32px;border-right:1px solid var(--line);background:var(--bg)}
+.split-list{width:560px;flex-shrink:0;overflow-y:auto;padding:36px 36px;border-right:1px solid var(--line);background:var(--bg)}
+#dmap,#pmap,#smap{flex:1;height:100%;min-height:300px;background:var(--paper)}
+
+/* impact strip — editorial inline numbers, not cards */
+.impact-strip{display:flex;gap:0;margin-top:28px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:18px 0}
+.ip{flex:1;background:transparent;border:none;border-right:1px solid var(--line);border-radius:0;padding:0 22px}
+.ip:first-child{padding-left:0}
+.ip:last-child{border-right:none;padding-right:0}
+.ipn{font-family:'Fraunces',serif;font-weight:500;font-size:30px;color:var(--ink);line-height:1;letter-spacing:-.02em;font-variant-numeric:tabular-nums lining-nums}
+.ipl{font-size:10.5px;color:var(--muted);margin-top:8px;font-weight:700;letter-spacing:.14em;text-transform:uppercase}
+
+.card-title{font-family:'Fraunces',serif;font-weight:500;font-size:22px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;letter-spacing:-.02em;color:var(--ink)}
+.need-counter{font-size:10px;font-weight:700;color:var(--ink2);background:transparent;padding:3px 9px;border-radius:3px;margin-left:auto;border:1px solid var(--line2);letter-spacing:.08em;font-variant-numeric:tabular-nums}
+.card-desc{font-size:13.5px;color:var(--ink2);line-height:1.65;margin:10px 0 18px;max-width:580px;font-weight:400}
+.card-desc b{color:var(--ink);font-weight:600}
+.cat-ic{width:42px;height:42px;border-radius:7px;background:var(--bg);border:1px solid var(--line);display:grid;place-items:center;font-size:20px;flex-shrink:0}
+.item.rich{padding:18px}
+.claimed-row{margin-top:14px;font-size:13px;color:var(--green-d);font-weight:600;background:transparent;padding:11px 13px;border-radius:6px;display:flex;align-items:center;gap:8px;border:1px solid var(--green-soft);background:var(--green-tint)}
 .item.opp{cursor:pointer;transition:.15s}
-.item.opp:hover{border-color:var(--blue);background:var(--blue-soft)}
-.item.opp.sel{border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-soft);background:#fff}
-.tap-hint{margin-top:10px;font-size:11.5px;font-weight:600;color:var(--faint);text-align:center}
-.item.opp.sel .tap-hint{color:var(--blue)}
+.item.opp:hover{border-color:var(--ink2)}
+.item.opp.sel{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink);background:var(--paper)}
+.tap-hint{margin-top:12px;font-size:10.5px;font-weight:700;color:var(--faint);text-align:center;letter-spacing:.14em;text-transform:uppercase}
+.item.opp.sel .tap-hint{color:var(--ink)}
 
 /* verification */
-.voverlay{position:fixed;inset:0;z-index:1900;display:grid;place-items:center;padding:24px;background:radial-gradient(130% 120% at 50% -10%,#e9f5ee 0%,#f5f4ee 55%);overflow:auto}
-.vcard{width:100%;max-width:480px;background:var(--surface);border:1px solid var(--line);border-radius:26px;box-shadow:var(--shadow-lg);padding:32px 30px 26px}
-.vlogo{width:58px;height:58px;border-radius:16px;display:grid;place-items:center;margin:0 auto 16px;box-shadow:0 12px 28px -10px rgba(0,0,0,.28);font-size:27px}
-.vcard h1{font-family:'Fraunces',serif;font-weight:600;font-size:25px;text-align:center;letter-spacing:-.01em}
-.vcard .lede{font-size:14px;color:var(--muted);text-align:center;margin:9px auto 0;max-width:390px;line-height:1.5}
-.vform{margin:22px 0 6px;display:flex;flex-direction:column;gap:13px}
-.vf label{display:block;font-size:12.5px;font-weight:700;color:var(--ink2);margin-bottom:6px}
-.vfile{display:flex;align-items:center;gap:10px;border:1.5px dashed var(--line2);border-radius:12px;padding:12px 14px;cursor:pointer;color:var(--muted);font-size:13.5px;transition:.15s}
-.vfile:hover{border-color:var(--green);background:var(--green-tint);color:var(--green-d)}
+.voverlay{position:fixed;inset:0;z-index:1900;display:grid;place-items:center;padding:24px;background:var(--bg);overflow:auto}
+.vcard{width:100%;max-width:480px;background:var(--paper);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);padding:38px 36px 30px}
+.vlogo{width:42px;height:42px;border-radius:9px;display:grid;place-items:center;margin:0 auto 22px;font-size:20px;background:var(--ink)!important;color:#fff;box-shadow:none}
+.vcard h1{font-family:'Fraunces',serif;font-weight:500;font-size:28px;text-align:left;letter-spacing:-.02em;line-height:1.15}
+.vcard .lede{font-size:14px;color:var(--ink2);text-align:left;margin:11px 0 0;max-width:none;line-height:1.6}
+.vform{margin:26px 0 6px;display:flex;flex-direction:column;gap:14px}
+.vf label{display:block;font-size:10.5px;font-weight:700;color:var(--muted);margin-bottom:8px;letter-spacing:.14em;text-transform:uppercase}
+.vfile{display:flex;align-items:center;gap:10px;border:1px dashed var(--line2);border-radius:7px;padding:14px 16px;cursor:pointer;color:var(--muted);font-size:13.5px;transition:.15s;background:var(--paper)}
+.vfile:hover{border-color:var(--ink);background:var(--bg);color:var(--ink)}
 .vsub{width:100%;margin-top:8px}
 .vsub:disabled{opacity:.85;cursor:default;transform:none}
-.vrow{text-align:center;margin-top:13px}
-.vrow a{color:var(--green-d);font-weight:700;font-size:13.5px;text-decoration:none}
-.vfoot{font-size:12px;color:var(--faint);text-align:center;margin-top:14px;line-height:1.5}
-.vchk{font-size:12px;vertical-align:middle}
-.trust-note{display:flex;align-items:center;gap:9px;background:var(--green-tint);border:1px solid var(--green-soft);border-radius:12px;padding:11px 13px;font-size:12.5px;color:var(--green-d);font-weight:600;margin-top:6px}
-.vtop{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
-.vlogo.sm{width:44px;height:44px;border-radius:13px;margin:0;font-size:21px;box-shadow:0 8px 18px -8px rgba(0,0,0,.3)}
-.vstepn{font-size:12px;font-weight:700;color:var(--faint);letter-spacing:.04em}
-.vprog{height:6px;border-radius:6px;background:var(--bg);overflow:hidden;margin-bottom:22px}
-.vprog i{display:block;height:100%;background:linear-gradient(90deg,#34c285,#0f8657);border-radius:6px;transition:width .35s cubic-bezier(.2,.8,.2,1)}
-.vcard .vq{font-family:'Fraunces',serif;font-weight:600;font-size:24px;letter-spacing:-.01em;line-height:1.2;text-align:left}
-.vhelp{font-size:13.5px;color:var(--muted);line-height:1.5;margin-top:8px}
-.vfield{margin:20px 0 6px}
-.vbtns{display:flex;gap:10px;margin-top:6px}
+.vrow{text-align:left;margin-top:18px}
+.vrow a{color:var(--muted);font-weight:500;font-size:12.5px;text-decoration:underline;text-underline-offset:3px}
+.vrow a:hover{color:var(--ink)}
+.vfoot{font-size:11px;color:var(--muted);text-align:left;margin-top:18px;line-height:1.55;letter-spacing:.01em;padding-top:18px;border-top:1px solid var(--line)}
+.vchk{font-size:11px;vertical-align:middle}
+.trust-note{display:flex;align-items:center;gap:10px;background:transparent;border:1px solid var(--green-soft);border-radius:7px;padding:12px 14px;font-size:12.5px;color:var(--green-d);font-weight:500;margin-top:8px}
+.vtop{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px}
+.vlogo.sm{width:36px;height:36px;border-radius:8px;margin:0;font-size:17px;box-shadow:none}
+.vstepn{font-size:10.5px;font-weight:700;color:var(--muted);letter-spacing:.14em;text-transform:uppercase;font-variant-numeric:tabular-nums}
+.vprog{height:2px;border-radius:0;background:var(--line);overflow:hidden;margin-bottom:28px}
+.vprog i{display:block;height:100%;background:var(--ink);border-radius:0;transition:width .35s cubic-bezier(.2,.8,.2,1)}
+.vcard .vq{font-family:'Fraunces',serif;font-weight:500;font-size:26px;letter-spacing:-.02em;line-height:1.2;text-align:left;color:var(--ink)}
+.vhelp{font-size:13.5px;color:var(--ink2);line-height:1.6;margin-top:10px;font-weight:400}
+.vfield{margin:22px 0 6px}
+.vbtns{display:flex;gap:10px;margin-top:8px}
 .vhalf{flex:1}
-.vspin{width:46px;height:46px;border-radius:50%;border:4px solid var(--green-soft);border-top-color:var(--green);margin:0 auto;animation:vspin .8s linear infinite}
+.vspin{width:38px;height:38px;border-radius:50%;border:2px solid var(--line);border-top-color:var(--ink);margin:0 auto;animation:vspin .8s linear infinite}
 @keyframes vspin{to{transform:rotate(360deg)}}
-.verr{display:none;color:var(--red);font-size:12.5px;font-weight:600;margin-top:9px}
+.verr{display:none;color:var(--red);font-size:12px;font-weight:500;margin-top:10px}
 .verr.show{display:block}
 .vfield input.err,.vfield .vfile.err{border-color:var(--red)}
 .vcard.shake{animation:shake .42s cubic-bezier(.36,.07,.19,.97)}
 @keyframes shake{10%,90%{transform:translateX(-1px)}20%,80%{transform:translateX(2px)}30%,50%,70%{transform:translateX(-5px)}40%,60%{transform:translateX(5px)}}
-.vrow.nudge a{background:var(--green-soft);color:var(--green-d);padding:7px 13px;border-radius:9px;display:inline-block}
-.sortbar{display:flex;gap:7px;margin:14px 0 18px}
-.sortbar button{flex:1;border:1px solid var(--line);background:var(--surface);border-radius:11px;padding:9px;font-weight:700;font-size:12.5px;color:var(--muted);cursor:pointer}
-.sortbar button.on{border-color:var(--blue);background:var(--blue-soft);color:var(--blue)}
-.rating{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted)}
-.rating b{color:var(--ink)}
+.vrow.nudge a{background:var(--green-tint);color:var(--green-d);padding:7px 13px;border-radius:6px;display:inline-block;text-decoration:none}
+.sortbar{display:flex;gap:0;margin:18px 0 22px;border-bottom:1px solid var(--line)}
+.sortbar button{flex:1;border:none;background:transparent;border-radius:0;padding:10px 4px;font-weight:500;font-size:12.5px;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;letter-spacing:.01em;transition:.15s}
+.sortbar button.on{border-bottom-color:var(--ink);background:transparent;color:var(--ink)}
+.sortbar button:hover:not(.on){color:var(--ink2)}
+.rating{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.rating b{color:var(--ink);font-weight:600}
 
 /* receipt modal */
-.modal{position:fixed;inset:0;z-index:1500;background:rgba(22,32,27,.5);display:grid;place-items:center;padding:24px;opacity:0;visibility:hidden;transition:.25s}
+.modal{position:fixed;inset:0;z-index:1500;background:rgba(22,27,23,.45);display:grid;place-items:center;padding:24px;opacity:0;visibility:hidden;transition:.25s}
 .modal.show{opacity:1;visibility:visible}
-.modal .sheet{width:100%;max-width:440px;background:var(--surface);border-radius:22px;box-shadow:var(--shadow-lg);padding:28px;transform:translateY(14px);transition:.25s}
+.modal .sheet{width:100%;max-width:440px;background:var(--paper);border:1px solid var(--line2);border-radius:var(--r);box-shadow:var(--shadow-lg);padding:30px 32px;transform:translateY(14px);transition:.25s}
 .modal.show .sheet{transform:translateY(0)}
-.receipt .rh{display:flex;align-items:center;gap:11px;border-bottom:1px dashed var(--line);padding-bottom:16px;margin-bottom:16px}
-.receipt h3{font-family:'Fraunces',serif;font-size:20px;font-weight:600}
-.receipt .line{display:flex;justify-content:space-between;font-size:14px;padding:7px 0;color:var(--ink2)}
-.receipt .line.tot{border-top:1px solid var(--line);margin-top:8px;padding-top:13px;font-weight:700;font-size:16px;color:var(--ink)}
-.receipt .note{font-size:11.5px;color:var(--faint);margin-top:16px;line-height:1.5;background:var(--bg);padding:12px;border-radius:11px}
+.receipt .rh{display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--line);padding-bottom:18px;margin-bottom:18px}
+.receipt h3{font-family:'Fraunces',serif;font-size:22px;font-weight:500;letter-spacing:-.02em}
+.receipt .line{display:flex;justify-content:space-between;font-size:13.5px;padding:9px 0;color:var(--ink2);font-variant-numeric:tabular-nums}
+.receipt .line.tot{border-top:1px solid var(--line);margin-top:10px;padding-top:14px;font-weight:600;font-size:15px;color:var(--ink)}
+.receipt .note{font-size:11px;color:var(--muted);margin-top:18px;line-height:1.65;background:var(--bg);padding:14px;border-radius:6px;border:1px solid var(--line);font-weight:400}
 
-.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(16px);z-index:1800;background:var(--ink);color:#fff;border-radius:13px;padding:13px 20px;box-shadow:var(--shadow-lg);font-size:14px;font-weight:600;opacity:0;transition:.3s;display:flex;gap:10px;align-items:center;pointer-events:none}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(16px);z-index:1800;background:var(--ink);color:#fff;border-radius:7px;padding:12px 20px;box-shadow:var(--shadow-lg);font-size:13.5px;font-weight:500;opacity:0;transition:.3s;display:flex;gap:10px;align-items:center;pointer-events:none;letter-spacing:.01em}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
-.toast .ic{color:#34c285}
+.toast .ic{color:#7fc098}
 
-@media(max-width:920px){.roles{grid-template-columns:1fr}.driver-list,.split-list{width:100%}#dmap,#pmap,#smap{display:none}.row3,.row2{grid-template-columns:1fr}.switch button span{display:none}}
+/* ============================================================
+   CITY DASHBOARD VIEW
+   ============================================================ */
+.city-wrap{flex:1;overflow:auto;display:flex;flex-direction:column}
+.city-col{max-width:1180px;margin:0 auto;width:100%;padding:0 48px}
+.city-hero{padding:56px 0 48px;border-bottom:1px solid var(--line)}
+.city-crumb{font-size:10.5px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:18px}
+.city-title{font-family:'Fraunces',serif;font-size:52px;font-weight:400;line-height:1;color:var(--ink);margin-bottom:6px;letter-spacing:-.025em}
+.city-geo{font-size:17px;font-style:italic;font-weight:300;color:var(--ink2);font-family:'Fraunces',serif;margin-bottom:42px}
+.city-geo .sep{color:var(--faint);margin:0 9px;font-style:normal}
+.city-heroStat{display:flex;align-items:baseline;gap:22px;margin-bottom:22px;flex-wrap:wrap}
+.city-heroNum{font-family:'Fraunces',serif;font-weight:400;font-size:128px;line-height:.9;color:var(--ink);letter-spacing:-.04em;font-variant-numeric:tabular-nums lining-nums}
+.city-heroLab{font-family:'Fraunces',serif;font-style:italic;font-weight:400;font-size:30px;color:var(--ink2);line-height:1.15;max-width:380px}
+.city-heroProse{font-size:16px;line-height:1.65;color:var(--ink2);max-width:720px}
+.city-heroProse b{color:var(--ink);font-weight:600}
+.city-heroProse .accent{color:var(--green-d);font-weight:600}
+.city-section{padding:44px 0;border-bottom:1px solid var(--line)}
+.city-sHead{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:24px}
+.city-sHead h2{font-family:'Fraunces',serif;font-size:24px;font-weight:500;color:var(--ink);letter-spacing:-.02em}
+.city-sHead .meta{font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums;letter-spacing:.02em}
+.city-mapWrap{background:var(--paper);border:1px solid var(--line);height:500px;position:relative;overflow:hidden}
+#citymap{position:absolute;inset:0}
+.city-legend{position:absolute;top:12px;right:12px;z-index:500;background:rgba(251,249,242,.96);border:1px solid var(--line);padding:11px 13px;font-size:10.5px}
+.city-legend .lt{font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-size:9.5px;margin-bottom:7px}
+.city-legend .scale{display:flex;align-items:center;gap:7px;margin-bottom:9px}
+.city-legend .bar{width:110px;height:5px;background:linear-gradient(90deg,#7ca87a,#d4b34c,#c46d2e,#a83232)}
+.city-legend .sl{font-size:9.5px;color:var(--ink2);font-variant-numeric:tabular-nums}
+.city-legend .keys{display:flex;flex-direction:column;gap:4px;font-size:10px;color:var(--ink2)}
+.city-legend .keyrow{display:flex;align-items:center;gap:7px}
+.city-legend .kd{width:8px;height:8px;border-radius:50%}
+.city-duo{display:grid;grid-template-columns:1.05fr 1fr;gap:48px}
+.city-duo h2{margin-bottom:6px}
+.city-subhead{font-family:'Fraunces',serif;font-style:italic;font-size:13px;color:var(--muted);margin-bottom:20px;font-weight:300}
+.city-wire{display:flex;flex-direction:column}
+.city-wireItem{display:grid;grid-template-columns:60px 1fr;gap:16px;padding:12px 0;border-top:1px solid var(--line);opacity:0;animation:wireIn .5s forwards}
+.city-wireItem:first-child{border-top:none}
+@keyframes wireIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+.city-wireItem.fresh{background:linear-gradient(90deg,rgba(13,102,68,.06),transparent 60%)}
+.city-wireTime{font-variant-numeric:tabular-nums;font-size:11px;color:var(--muted);font-weight:500;padding-top:1px;letter-spacing:.02em}
+.city-wireText{font-size:13px;color:var(--ink2);line-height:1.55}
+.city-wireText b{color:var(--ink);font-weight:600}
+.city-wireText .tag{display:inline-block;font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:1px 6px;border-radius:2px;margin-left:6px;vertical-align:1px}
+.city-wireText .tag.urgent{background:var(--red);color:#fff}
+.city-wireText .tag.confirmed{color:var(--green-d);border:1px solid var(--green-d);background:transparent}
+table.city-counties{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+table.city-counties thead th{text-align:left;font-size:9.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:var(--muted);padding:0 0 11px;border-bottom:1.5px solid var(--ink)}
+table.city-counties thead th.r{text-align:right}
+table.city-counties tbody td{padding:12px 0;border-bottom:1px solid var(--line);font-size:13.5px;color:var(--ink)}
+table.city-counties tbody td.r{text-align:right}
+table.city-counties tbody td.name{font-weight:600}
+table.city-counties .scoreCell{display:inline-flex;align-items:center;gap:8px}
+table.city-counties .scoreDot{width:7px;height:7px;border-radius:50%;display:inline-block}
+table.city-counties tbody tr:last-child td{border-bottom:none}
+table.city-counties .last{font-size:11.5px;color:var(--muted);font-style:italic;font-family:'Fraunces',serif;font-weight:300}
+.city-method{padding:44px 0 56px}
+.city-method h3{font-size:10.5px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:16px}
+.city-method p{font-size:13.5px;line-height:1.7;color:var(--ink2);max-width:780px;margin-bottom:16px}
+.city-method p b{color:var(--ink);font-weight:600}
+.city-method .closing{font-family:'Fraunces',serif;font-style:italic;font-weight:300;font-size:20px;color:var(--ink);margin-top:28px}
+.city-method .sources{display:flex;flex-wrap:wrap;gap:6px 22px;margin-top:14px;font-size:11px;color:var(--muted)}
+@media(max-width:980px){
+  .city-duo{grid-template-columns:1fr;gap:40px}
+  .city-heroNum{font-size:88px}
+  .city-heroLab{font-size:22px}
+  .city-heroStat{flex-direction:column;align-items:flex-start;gap:6px}
+  .city-mapWrap{height:420px}
+  .city-title{font-size:38px}
+  .city-col{padding:0 28px}
+}
+
+@media(max-width:920px){
+  .roles{grid-template-columns:1fr;border-left:none;border-right:none}
+  .role-card{border-right:none;border-bottom:1px solid var(--line)}
+  .role-card:last-child{border-bottom:none}
+  /* Stack the list above and the map below — keep map visible */
+  .driver-wrap,.split-wrap{flex-direction:column}
+  .driver-list,.split-list{width:100%;border-right:none;border-bottom:1px solid var(--line);padding:28px 24px;max-height:none}
+  #dmap,#pmap,#smap{display:block;width:100%;height:420px;min-height:420px;flex:none}
+  .row3,.row2{grid-template-columns:1fr}
+  .switch button span{display:none}
+  .picker h1{font-size:42px}
+  .section-h{font-size:26px}
+}
 </style>
 </head>
 <body>
@@ -230,28 +339,34 @@ textarea{resize:none;min-height:96px;line-height:1.5}
   <div class="picker-inner">
     <div class="plogo"><svg viewBox="0 0 24 24" fill="none"><path d="M12 21c0-5 3-8 7-9-1 5-4 8-7 9Zm0 0c0-5-3-8-7-9 1 5 4 8 7 9Zm0-1V8" stroke="#fff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
     <h1>Good food, rescued.</h1>
-    <p class="lede">Replenish connects grocery stores with surplus food to the food banks and neighbors who need it — delivered by local volunteers, before it's wasted.</p>
+    <p class="lede">Surplus food from grocers, routed to the neighborhoods that need it most.</p>
     <div class="roles">
       <div class="role-card store" onclick="startRole('store')">
         <div class="emoji">🛒</div>
-        <h3>I'm a grocery store</h3>
-        <p>Post surplus food in seconds. We notify nearby food banks and a volunteer picks it up. You get a tax receipt.</p>
+        <h3>Grocery store</h3>
+        <p>Post surplus in seconds. We notify nearby food banks, send a volunteer, and hand you a tax receipt.</p>
         <div class="go">Enter as a store →</div>
       </div>
       <div class="role-card pantry" onclick="startRole('pantry')">
         <div class="emoji">🍽️</div>
-        <h3>I'm a food bank</h3>
-        <p>Tell us what you need. Claim surplus from stores nearby — and get priority because your community needs it most.</p>
+        <h3>Food bank</h3>
+        <p>Tell us what you need. Claim surplus nearby, with high-need areas first in line.</p>
         <div class="go">Enter as a food bank →</div>
       </div>
       <div class="role-card driver" onclick="startRole('driver')">
         <div class="emoji">🚐</div>
-        <h3>I'm a volunteer driver</h3>
-        <p>See delivery runs near you with time estimates. Pick one, drop it off, feed a family. Build your reliability.</p>
-        <div class="go">Enter as a driver →</div>
+        <h3>Volunteer driver</h3>
+        <p>See runs near you, ranked by need. Pick one up, drop it off, feed a family.</p>
+        <div class="go">Enter as a volunteer →</div>
+      </div>
+      <div class="role-card city" onclick="enter('city')">
+        <div class="emoji">🏛</div>
+        <h3>City view</h3>
+        <p>The whole network, live, mapped against where hunger runs highest.</p>
+        <div class="go">See the dashboard →</div>
       </div>
     </div>
-    <div class="foot">🛡️ Every store, food bank, and driver is ID-verified before joining.<br><span style="opacity:.75">FutureHacks 2026 · <a href="#" onclick="resetDemo();return false" style="color:var(--faint)">reset demo data</a></span></div>
+    <div class="foot">Every store, food bank, and driver is ID-verified before joining. &nbsp;·&nbsp; FutureHacks 2026 &nbsp;·&nbsp; <a href="#" onclick="resetDemo();return false">Reset demo data</a></div>
   </div>
 </div>
 
@@ -268,6 +383,7 @@ textarea{resize:none;min-height:96px;line-height:1.5}
       <button data-r="store" onclick="enter('store')">🛒 <span>Store</span></button>
       <button data-r="pantry" onclick="enter('pantry')">🍽️ <span>Food bank</span></button>
       <button data-r="driver" onclick="enter('driver')">🚐 <span>Driver</span></button>
+      <button data-r="city" onclick="enter('city')">🏛 <span>City</span></button>
     </div>
     <div class="who" id="who"></div>
   </div>
@@ -277,7 +393,7 @@ textarea{resize:none;min-height:96px;line-height:1.5}
 <div class="modal" id="modal"><div class="sheet" id="modalBody"></div></div>
 <div class="toast" id="toast"><span class="ic">✓</span><span id="toastMsg"></span></div>
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script>
 /* ======================= REFERENCE DATA ======================= */
 const MILES=20, KM_RADIUS=MILES*1.60934, MPH=32;
@@ -290,9 +406,16 @@ const CATS=[
  {c:"Eggs",k:["egg"]},
  {c:"Prepared Meals",k:["meal","prepared","deli","rotisserie","sandwich","cooked","hot food","soup"]},
  {c:"Canned & Dry Goods",k:["can","rice","pasta","bean","dry","cereal","grain","flour","sauce"]},
+ {c:"Toiletries & Household",k:["toothbrush","toothpaste","soap","shampoo","deodorant","diaper","wipe","hygiene","toiletr","detergent","paper towel","toilet paper","tissue","sanitiz","razor","household","cleaning"]},
+ {c:"Other",k:[]},
 ];
 const ALLCATS=CATS.map(x=>x.c);
-const CATICON={"Fruits":"🍎","Vegetables":"🥕","Dairy":"🥛","Bread & Bakery":"🍞","Meat & Protein":"🍗","Eggs":"🥚","Prepared Meals":"🍱","Canned & Dry Goods":"🥫"};
+const CATICON={"Fruits":"🍎","Vegetables":"🥕","Dairy":"🥛","Bread & Bakery":"🍞","Meat & Protein":"🍗","Eggs":"🥚","Prepared Meals":"🍱","Canned & Dry Goods":"🥫","Toiletries & Household":"🧴","Other":"📦"};
+const unitLabel=(u,q)=>u==='units'?(q===1?'item':'items'):'lbs';
+const amtL=l=>`${l.lbs} ${unitLabel(l.unit,l.lbs)}`;
+const amtC=c=>{const l=DB.listings.find(x=>x.id===c.listingId);return `${c.lbs} ${unitLabel(l&&l.unit,c.lbs)}`;};
+const PANTRY_EIN={pa1:"22-3815540",pa2:"46-2031778",pa3:"21-0635413",pa4:"27-1908442",pa5:"22-2516979",pa6:"13-4204472",pa7:"45-0998123"};
+const FMV_PER_LB=1.75; // estimated grocery fair market value per lb (donation valuation)
 let smap=null, pmap=null;
 
 // Real county-level need scores from the Need Index model (fallback; need_index.min.json overrides at load)
@@ -331,7 +454,9 @@ const km=(a,b)=>{const R=6371,dLat=(b.lat-a.lat)*Math.PI/180,dLng=(b.lng-a.lng)*
 const miles=(a,b)=>km(a,b)/1.60934;
 const driveMin=(a,b)=>Math.max(4,Math.round(miles(a,b)/MPH*60));
 const hoursToPickup=l=>(l.expiresAt-Date.now())/3600000;
-const urgencyMult=(c,l)=>c.reopened?2.0:(hoursToPickup(l)<=2?1.7:hoursToPickup(l)<=6?1.3:1.0);
+// Category perishability: fresh, fast-spoiling food outranks shelf-stable goods at the same deadline (strawberries beat canned beans)
+const PERISH={"Prepared Meals":0.45,"Dairy":0.40,"Meat & Protein":0.40,"Fruits":0.35,"Vegetables":0.35,"Bread & Bakery":0.30,"Eggs":0.25,"Canned & Dry Goods":0,"Toiletries & Household":0,"Other":0};
+const urgencyMult=(c,l)=>{if(c.reopened)return 2.0;const h=hoursToPickup(l);const base=h<=2?1.5:h<=6?1.2:1.0;return base+(PERISH[l.category]||0);};
 const strikeWeight=id=>(DB.strikes||[]).filter(s=>s.driverId===id).reduce((a,s)=>a+(s.weight||1),0);
 const need=c=>AREA_NEED[c]??20;
 // Badges scale relative to the range of areas being served, so the spread reads clearly
@@ -350,31 +475,40 @@ const avatarColor=r=>r==='store'?'#e2823f':r==='pantry'?'#15a06a':'#3b7fb0';
 
 /* ======================= SMART PARSER ======================= */
 function parseText(txt){
-  const t=' '+txt.toLowerCase()+' ';
-  // quantity
-  let lbs=0; const m=t.match(/(\d+(?:\.\d+)?)\s*(lbs?|pounds?|kg|cases?|crates?|boxes?|box|trays?|bags?|dozen)?/);
-  if(m){let n=parseFloat(m[1]);const u=(m[2]||'').replace(/s$/,'');
-    if(['case','crate','box','tray','bag'].includes(u))n*=22; else if(u==='kg')n*=2.2; else if(u==='dozen')n*=1.5;
-    lbs=Math.round(n);}
-  if(!lbs)lbs=40;
-  // category
-  let category=null;
-  for(const cc of CATS){if(cc.k.some(k=>t.includes(k))){category=cc.c;break;}}
-  if(!category)category="Fruits";
-  // deadline
+  const low=txt.toLowerCase(); const t0=' '+low+' ';
+  // deadline (one per posting)
   let deadline="by end of day";
   const months=['january','february','march','april','may','june','july','august','september','october','november','december'];
   const monRe=new RegExp('('+months.join('|')+'|jan|feb|mar|apr|jun|jul|aug|sep|oct|nov|dec)\\.?\\s*(\\d{1,2})');
   let mm;
-  if(mm=t.match(monRe)){deadline=`by ${cap(mm[1]).slice(0,3)} ${mm[2]}`;}
-  else if(mm=t.match(/(\d{1,2})\s*(am|pm)/)){deadline=`by ${mm[1]}${mm[2]}`;}
-  else if(mm=t.match(/by\s+(\d{1,2})\/(\d{1,2})/)){deadline=`by ${mm[1]}/${mm[2]}`;}
-  else if(t.includes('tonight'))deadline="by tonight";
-  else if(t.includes('tomorrow'))deadline="by tomorrow";
-  else if(t.includes('noon'))deadline="by noon";
-  else if(mm=t.match(/(monday|tuesday|wednesday|thursday|friday|saturday|sunday)/))deadline=`by ${cap(mm[1])}`;
-  else if(mm=t.match(/(\d+)\s*hour/))deadline=`in ${mm[1]} hours`;
-  return {category,lbs,deadline};
+  if(mm=t0.match(monRe)){deadline=`by ${cap(mm[1]).slice(0,3)} ${mm[2]}`;}
+  else if(mm=t0.match(/(\d{1,2})\s*(am|pm)/)){deadline=`by ${mm[1]}${mm[2]}`;}
+  else if(mm=t0.match(/by\s+(\d{1,2})\/(\d{1,2})/)){deadline=`by ${mm[1]}/${mm[2]}`;}
+  else if(t0.includes('tonight'))deadline="by tonight";
+  else if(t0.includes('tomorrow'))deadline="by tomorrow";
+  else if(t0.includes('noon'))deadline="by noon";
+  else if(mm=t0.match(/(monday|tuesday|wednesday|thursday|friday|saturday|sunday)/))deadline=`by ${cap(mm[1])}`;
+  else if(mm=t0.match(/(\d+)\s*hour/))deadline=`in ${mm[1]} hours`;
+  // split into separate items on "and", commas, "+", "plus"
+  const segs=low.split(/\s+and\s+|,|;|\+|\n|\bplus\b/).map(s=>s.trim()).filter(Boolean);
+  const items=[];
+  segs.forEach(seg=>{
+    const t=' '+seg+' ';
+    const m=t.match(/(\d+(?:\.\d+)?)\s*(lbs?|pounds?|kg|cases?|crates?|boxes?|box|trays?|bags?|dozen|units?|items?|pieces?|pcs|bottles?|bars?|cans?|loaves|loaf|packs?|jars?)?/);
+    if(!m) return;
+    let qty=parseFloat(m[1]); const u=(m[2]||'').replace(/s$/,'');
+    let category=null;
+    for(const cc of CATS){if(cc.k.length&&cc.k.some(k=>t.includes(k))){category=cc.c;break;}}
+    let unit;
+    if(['lb','pound'].includes(u)) unit='lbs';
+    else if(u==='kg'){unit='lbs';qty=qty*2.2;}
+    else if(['case','crate','box','tray','bag','dozen','unit','item','piece','pc','bottle','bar','can','loaf','loave','pack','jar'].includes(u)) unit='units';
+    else unit=(category&&!['Toiletries & Household','Other'].includes(category))?'lbs':'units';
+    if(!category) category='Other';
+    items.push({category,qty:Math.max(1,Math.round(qty)),unit});
+  });
+  if(!items.length) items.push({category:'Fruits',qty:40,unit:'lbs'});
+  return {items,deadline};
 }
 
 /* ======================= VERIFICATION / ONBOARDING ======================= */
@@ -467,7 +601,7 @@ async function doVerify(){
 }
 function createEntity(role,name,loc,addr){
   if(role==='store'){const id='st'+(SSEQ++);DB.stores.push({id,name,area:loc.city||'NJ',lat:loc.lat,lng:loc.lng,verified:true,address:addr});me.storeId=id;}
-  else if(role==='pantry'){const id='pa'+(PSEQ++);const county=loc.county||'Essex County';if(!(county in AREA_NEED))AREA_NEED[county]=20;DB.pantries.push({id,name,area:loc.city||'NJ',county,lat:loc.lat,lng:loc.lng,needs:[],verified:true,address:addr});me.pantryId=id;}
+  else if(role==='pantry'){const id='pa'+(PSEQ++);const county=loc.county||'Essex County';if(!(county in AREA_NEED))AREA_NEED[county]=20;DB.pantries.push({id,name,area:loc.city||'NJ',county,lat:loc.lat,lng:loc.lng,needs:[],verified:true,address:addr,ein:(vData.ein||'')});me.pantryId=id;}
   else if(role==='driver'){const id='dr'+(DSEQ++);DB.drivers.push({id,name,lat:loc.lat,lng:loc.lng,rating:5.0,runs:0,verified:true,address:addr});me.driverId=id;}
   document.getElementById('verify').classList.add('hidden');
   saveDB();
@@ -480,6 +614,7 @@ function enter(role){
   if(role==='store')me.id=me.storeId||(me.storeId="st1");
   if(role==='pantry')me.id=me.pantryId||(me.pantryId="pa1");
   if(role==='driver')me.id=me.driverId||(me.driverId="dr1");
+  // 'city' is a public dashboard — no identity required
   document.getElementById('picker').classList.add('hidden');
   document.getElementById('app').classList.remove('hidden');
   document.querySelectorAll('#switch button').forEach(b=>b.classList.toggle('on',b.dataset.r===role));
@@ -487,10 +622,19 @@ function enter(role){
 }
 function exitApp(){document.getElementById('app').classList.add('hidden');document.getElementById('picker').classList.remove('hidden');me.role=null;}
 function renderWho(){
+  if(me.role==='city'){
+    const now=new Date();
+    let h=now.getHours(),m=now.getMinutes().toString().padStart(2,'0'),ap=h>=12?'PM':'AM';h=h%12||12;
+    document.getElementById('who').innerHTML=`
+      <div class="ava" style="background:#0d6644">NJ</div>
+      <div class="meta"><div class="n">Public dashboard</div><div class="s">Live · ${h}:${m} ${ap} ET</div></div>
+      <button class="exit" onclick="exitApp()" title="Switch role">⎋</button>`;
+    return;
+  }
   let n,s,ver=true;
   if(me.role==='store'){const x=store(me.id);n=x.name;s=x.area+', NJ';ver=x.verified!==false;}
   if(me.role==='pantry'){const x=pantry(me.id);n=x.name;s=x.county+', NJ';ver=x.verified!==false;}
-  if(me.role==='driver'){const x=driver(me.id);n=x.name;s='★ '+x.rating+' · '+x.runs+' runs';ver=x.verified!==false;}
+  if(me.role==='driver'){const x=driver(me.id);n=x.name;s=x.runs+' deliveries · Volunteer driver';ver=x.verified!==false;}
   document.getElementById('who').innerHTML=`
     <div class="ava" style="background:${avatarColor(me.role)}">${n[0]}</div>
     <div class="meta"><div class="n">${n} ${ver?'<span class="vchk" title="ID-verified">🛡️</span>':''}</div><div class="s">${s}</div></div>
@@ -500,6 +644,7 @@ function renderView(){
   if(me.role==='store')renderStore();
   else if(me.role==='pantry')renderPantry();
   else if(me.role==='driver')renderDriver();
+  else if(me.role==='city')renderCity();
 }
 
 /* ======================= STORE VIEW ======================= */
@@ -510,10 +655,17 @@ function renderStore(){
   const delivered=DB.claims.filter(c=>(c.status==='delivered'||c.status==='confirmed')&&myL.some(l=>l.id===c.listingId));
   const lbsOut=delivered.reduce((a,c)=>a+c.lbs,0), meals=Math.round(lbsOut/1.2), taxVal=Math.round(lbsOut*1.6);
   const reach=DB.pantries.filter(p=>km(s,p)<=KM_RADIUS).length;
+  const newRcpts=DB.claims.filter(c=>c.status==='confirmed'&&!c.notifiedReceipt&&myL.some(l=>l.id===c.listingId));
+  const rcptBanner=newRcpts.length?`<div class="card pad mt" style="border-color:var(--green);background:var(--green-tint)">
+    <div class="card-title" style="font-size:16px">🧾 ${newRcpts.length} new tax receipt${newRcpts.length>1?'s':''} ready</div>
+    <p class="card-desc" style="margin:7px 0 12px">A food bank confirmed they received your donation. Your tax receipt is now available.</p>
+    ${newRcpts.map(c=>{const pn=pantry(c.pantryId);return `<div class="claimed-row" style="justify-content:space-between"><span>${pn?pn.name:'A food bank'} confirmed · ${amtC(c)}</span><button class="btn sm" style="width:auto;padding:7px 13px" onclick="showReceipt('${c.id}')">View receipt</button></div>`;}).join('')}
+  </div>`:'';
   document.getElementById('view').innerHTML=`<div class="split-wrap">
     <div class="split-list">
       <div class="section-h">Post surplus food</div>
       <div class="section-sub">Food that won't sell? Post it in seconds — we notify the ${reach} food banks within ${MILES} miles and match a volunteer to pick it up.</div>
+      ${rcptBanner}
       <div class="impact-strip">
         <div class="ip"><div class="ipn">${lbsOut}</div><div class="ipl">lbs donated</div></div>
         <div class="ip"><div class="ipn">${meals}</div><div class="ipl">meals funded</div></div>
@@ -541,9 +693,9 @@ function initStoreMap(){
   const c=document.getElementById('smap');if(!c)return;
   if(smap){smap.remove();smap=null;}
   const s=store(me.id);
-  smap=L.map(c,{zoomControl:false,attributionControl:true}).setView([s.lat,s.lng],11);
+  smap=L.map(c,{zoomControl:false,attributionControl:false}).setView([s.lat,s.lng],11);
   L.control.zoom({position:'bottomright'}).addTo(smap);
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{attribution:'&copy; OpenStreetMap &copy; CARTO',maxZoom:19,subdomains:'abcd'}).addTo(smap);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{attribution:'',maxZoom:19}).addTo(smap);
   L.circle([s.lat,s.lng],{radius:KM_RADIUS*1000,color:'#e2823f',weight:1,fillColor:'#e2823f',fillOpacity:.05,dashArray:'4,6'}).addTo(smap);
   L.marker([s.lat,s.lng],{icon:storeIcon()}).addTo(smap).bindTooltip('Your store · '+s.name,{direction:'top'});
   const pts=[[s.lat,s.lng]];
@@ -565,9 +717,10 @@ function renderPoster(){
   }else{
     el.innerHTML=`
       <span class="label">Create a listing</span>
-      <div class="row3">
+      <div style="display:grid;grid-template-columns:1.3fr .75fr .8fr 1fr;gap:9px">
         <select id="fcat">${ALLCATS.map(c=>`<option>${c}</option>`).join('')}</select>
-        <input id="flbs" type="number" placeholder="lbs" value="80" />
+        <input id="flbs" type="number" placeholder="amount" value="80" />
+        <select id="funit"><option value="lbs">lbs</option><option value="units">units</option></select>
         <select id="fdead"><option>by end of day</option><option>by tonight</option><option>by 6pm</option><option>by noon</option><option>by tomorrow</option></select>
       </div>
       <button class="btn amber mt2" onclick="postFromForm()">＋ Post this surplus</button>`;
@@ -577,27 +730,24 @@ function doParse(){
   const v=document.getElementById('qtext').value.trim();
   if(!v){toast("Type what you have first");return;}
   parsed=parseText(v);
+  const rows=parsed.items.map(it=>`<div class="pchip"><span class="k">${it.category}</span><b>${it.qty} ${unitLabel(it.unit,it.qty)}</b></div>`).join('');
   document.getElementById('parsedBox').innerHTML=`
     <div class="parsed">
       <div class="pl">✨ Here's what we understood — looks right?</div>
-      <div class="pchips">
-        <div class="pchip"><span class="k">Food</span><b>${parsed.category}</b></div>
-        <div class="pchip"><span class="k">Amount</span><b>${parsed.lbs} lbs</b></div>
-        <div class="pchip"><span class="k">Pick up</span><b>${parsed.deadline}</b></div>
-      </div>
-      <button class="btn amber" style="margin-top:13px" onclick="postFromParse()">＋ Post this surplus</button>
+      <div class="pchips">${rows}<div class="pchip"><span class="k">Pick up</span><b>${parsed.deadline}</b></div></div>
+      <button class="btn amber" style="margin-top:13px" onclick="postFromParse()">＋ Post ${parsed.items.length>1?`all ${parsed.items.length} items`:'this surplus'}</button>
     </div>`;
 }
-function postFromParse(){postListing(parsed.category,parsed.lbs,parsed.deadline);parsed=null;}
+function postFromParse(){parsed.items.forEach(it=>postListing(it.category,it.qty,it.unit,parsed.deadline));parsed=null;}
 function postFromForm(){
-  const c=document.getElementById('fcat').value, l=parseInt(document.getElementById('flbs').value||0), d=document.getElementById('fdead').value;
-  if(!l||l<5){toast("Enter an amount (lbs)");return;}
-  postListing(c,l,d);
+  const c=document.getElementById('fcat').value, l=parseInt(document.getElementById('flbs').value||0), u=document.getElementById('funit').value, d=document.getElementById('fdead').value;
+  if(!l||l<1){toast("Enter an amount");return;}
+  postListing(c,l,u,d);
 }
-function postListing(category,lbs,deadline){
+function postListing(category,qty,unit,deadline){
   const s=store(me.id);
   const hrs=/tomorrow/.test(deadline)?20:/noon/.test(deadline)?2:/tonight|pm/.test(deadline)?3:4;
-  const l={id:"L"+(LSEQ++),storeId:s.id,storeName:s.name,area:s.area,lat:s.lat,lng:s.lng,category,lbs,available:lbs,deadline,expiresAt:Date.now()+hrs*3600000,createdAt:Date.now()};
+  const l={id:"L"+(LSEQ++),storeId:s.id,storeName:s.name,area:s.area,lat:s.lat,lng:s.lng,category,lbs:qty,available:qty,unit:unit||'lbs',deadline,expiresAt:Date.now()+hrs*3600000,createdAt:Date.now()};
   DB.listings.push(l);
   const reached=DB.pantries.filter(p=>p.needs.includes(category)&&km(s,p)<=KM_RADIUS).length;
   toast(`Posted! ${reached} food bank${reached===1?'':'s'} within ${MILES} mi notified`);
@@ -614,45 +764,65 @@ function renderMyListings(){
     const enroute=cls.filter(c=>c.status==='enroute');
     const pct=Math.round((l.lbs-l.available)/l.lbs*100);
     const icon=CATICON[l.category]||'🍽️';
-    let status,extra='';
-    if(l.available<=0&&enroute.length===0){status=`<span class="badge low">✓ Fully rescued</span>`;
-      extra=`<button class="btn sec sm" style="margin-top:13px;width:100%" onclick="showReceipt('${l.id}')">🧾 Download tax receipt</button>`;}
+    let status;
+    if(l.available<=0&&enroute.length===0){status=`<span class="badge low">✓ Fully rescued</span>`;}
     else if(enroute.length){status=`<span class="badge time">🚐 Driver en route</span>`;}
     else if(cls.length){status=`<span class="badge med">${cls.length} claim${cls.length===1?'':'s'} · finding driver</span>`;}
     else{status=`<span class="badge status">Notified · waiting</span>`;}
+    const claimRows=cls.filter(c=>c.status==='delivered'||c.status==='confirmed').map(c=>{
+      const pn=pantry(c.pantryId);
+      if(c.status==='confirmed') return `<div class="claimed-row" style="justify-content:space-between"><span>🧾 Tax receipt ready · ${pn?pn.name:'food bank'} · ${amtC(c)}</span><button class="btn sm" style="width:auto;padding:7px 13px" onclick="showReceipt('${c.id}')">View receipt</button></div>`;
+      return `<div class="claimed-row" style="background:var(--amber-soft);color:var(--amber-d)">🚚 Delivered to ${pn?pn.name:'food bank'} · awaiting their confirmation</div>`;
+    }).join('');
     return `<div class="item rich">
       <div class="ih">
         <div style="display:flex;gap:13px;align-items:center;min-width:0">
           <div class="cat-ic">${icon}</div>
-          <div style="min-width:0"><div class="title">${l.category} <span class="cat-pill">${l.lbs} lbs</span></div>
-            <div class="meta"><span>Pick up <b>${l.deadline}</b></span><span><b>${l.available}</b> lbs left</span></div></div>
+          <div style="min-width:0"><div class="title">${l.category} <span class="cat-pill">${amtL(l)}</span></div>
+            <div class="meta"><span>Pick up <b>${l.deadline}</b></span><span><b>${l.available}</b> ${unitLabel(l.unit,l.available)} left</span></div></div>
         </div>${status}
       </div>
       <div class="barline"><i style="width:${pct}%"></i></div>
-      ${delivered.length?`<div class="claimed-row">✓ ${delivered.reduce((a,c)=>a+c.lbs,0)} lbs delivered to ${delivered.length} food bank${delivered.length===1?'':'s'} · ${Math.round(delivered.reduce((a,c)=>a+c.lbs,0)/1.2)} meals</div>`:''}
-      ${extra}
+      ${claimRows}
     </div>`;
   }).join('');
 }
-function showReceipt(lid){
-  const l=listing(lid);const s=store(l.storeId);
-  const value=(l.lbs*1.6).toFixed(2); // ~$1.60/lb fair market value
-  const ded=(l.lbs*1.6*1.5).toFixed(2); // enhanced deduction up to ~2x, conservative 1.5x
+function showReceipt(cid){
+  const c=DB.claims.find(x=>x.id===cid); if(!c) return;
+  const l=listing(c.listingId), s=store(l.storeId), p=pantry(c.pantryId);
+  const isLbs=l.unit!=='units';
+  const fmv=isLbs?c.lbs*FMV_PER_LB:0, ded=fmv*0.75, meals=isLbs?Math.round(c.lbs/1.2):0;
+  c.notifiedReceipt=true; saveDB();
+  const rno='RPL-'+new Date().getFullYear()+'-'+String(c.id).replace(/\D/g,'').padStart(6,'0');
+  const issued=new Date(c.confirmedAt||Date.now()).toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
+  const sAddr=s.address||(s.area+', NJ, USA');
+  const pAddr=p.address||(p.area+', NJ, USA');
+  const pEin=p.ein||PANTRY_EIN[p.id]||'Pending';
+  const lbl='font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--faint);margin-bottom:4px';
+  const sm='font-size:12px;color:var(--muted);line-height:1.4';
   document.getElementById('modalBody').innerHTML=`
     <div class="receipt">
       <div class="rh"><div class="mark" style="width:38px;height:38px;border-radius:11px;display:grid;place-items:center;background:linear-gradient(145deg,#34c285,#0f8657)"><svg viewBox="0 0 24 24" width="20" height="20" fill="none"><path d="M12 21c0-5 3-8 7-9-1 5-4 8-7 9Zm0 0c0-5-3-8-7-9 1 5 4 8 7 9Zm0-1V8" stroke="#fff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-        <div><h3>Donation Receipt</h3><div style="font-size:12px;color:var(--muted)">Replenish · ${new Date().toLocaleDateString()}</div></div></div>
-      <div class="line"><span>Donor</span><b>${s.name}, ${s.area} NJ</b></div>
-      <div class="line"><span>Item donated</span><span>${l.category}</span></div>
-      <div class="line"><span>Weight</span><span>${l.lbs} lbs</span></div>
-      <div class="line"><span>Est. fair market value</span><span>$${value}</span></div>
-      <div class="line tot"><span>Est. enhanced tax deduction</span><span>$${ded}</span></div>
-      <div class="note">Issued in good faith under the Bill Emerson Good Samaritan Food Donation Act. Donors of apparently wholesome food are protected from civil and criminal liability. Consult a tax professional; enhanced deduction estimate per IRC §170(e)(3).</div>
-      <button class="btn sec" style="margin-top:16px" onclick="closeModal()">Done</button>
+        <div><h3>Charitable Donation Receipt</h3><div style="font-size:12px;color:var(--muted)">Replenish Food Rescue · No. ${rno}</div></div></div>
+      <div style="display:flex;gap:16px;margin:4px 0 14px">
+        <div style="flex:1"><div style="${lbl}">Donor</div><div style="font-weight:700;font-size:13.5px">${s.name}</div><div style="${sm}">${sAddr}</div></div>
+        <div style="flex:1"><div style="${lbl}">Recipient organization</div><div style="font-weight:700;font-size:13.5px">${p.name}</div><div style="${sm}">${pAddr}<br>EIN ${pEin} · 501(c)(3) nonprofit</div></div>
+      </div>
+      <div class="line"><span>Date of contribution</span><span>${issued}</span></div>
+      <div class="line"><span>Description of property</span><span>${l.category}, apparently wholesome food</span></div>
+      <div class="line"><span>Quantity</span><span>${c.lbs} ${unitLabel(l.unit,c.lbs)}${isLbs?` · approx. ${meals} meals`:''}</span></div>
+      ${isLbs?`<div class="line"><span>Est. fair market value ($${FMV_PER_LB.toFixed(2)}/lb)</span><span>$${fmv.toFixed(2)}</span></div>
+      <div class="line tot"><span>Est. enhanced deduction · IRC §170(e)(3)</span><span>$${ded.toFixed(2)}</span></div>`:`<div class="line tot"><span>Fair market value</span><span>Per donor's cost records</span></div>`}
+      <div style="margin-top:12px;padding:11px 13px;background:var(--green-tint);border:1px solid var(--green-soft);border-radius:11px;font-size:12px;color:var(--green-d);font-weight:600;line-height:1.45">✓ Receipt confirmed by ${p.name} on ${issued}. No goods or services were provided in exchange for this contribution.</div>
+      <div class="note">Food donated in good faith under the Bill Emerson Good Samaritan Food Donation Act (42 U.S.C. §1791) and the Food Donation Improvement Act of 2022. Enhanced deduction is an estimate under IRC §170(e)(3) (the lesser of cost basis plus one-half of unrealized appreciation, or twice cost basis); the donor should retain cost-basis records and consult a tax professional. Replenish facilitates this donation and does not provide tax advice.</div>
+      <div style="display:flex;gap:10px;margin-top:15px">
+        <button class="btn sec" style="flex:1" onclick="closeModal()">Close</button>
+        <button class="btn" style="flex:1" onclick="window.print()">🧾 Print / Save PDF</button>
+      </div>
     </div>`;
   document.getElementById('modal').classList.add('show');
 }
-function closeModal(){document.getElementById('modal').classList.remove('show');}
+function closeModal(){document.getElementById('modal').classList.remove('show');if(me.role==='store')renderStore();}
 
 /* ======================= PANTRY VIEW ======================= */
 function renderPantry(){
@@ -666,7 +836,7 @@ function renderPantry(){
     <p class="card-desc">A driver marked these delivered. Confirm you received them — this two-way check is how Replenish keeps food honest.</p>
     ${pending.map(c=>{const l=listing(c.listingId),drv=driver(c.driverId);return `<div class="item rich" style="margin-bottom:10px;background:#fff">
       <div class="ih"><div style="display:flex;gap:13px;align-items:center;min-width:0"><div class="cat-ic">${(l&&CATICON[l.category])||'🍽️'}</div>
-        <div style="min-width:0"><div class="title">${l?l.category:'Food'} <span class="cat-pill">${c.lbs} lbs</span></div>
+        <div style="min-width:0"><div class="title">${l?l.category:'Food'} <span class="cat-pill">${amtC(c)}</span></div>
         <div class="meta"><span>from <b>${l?l.storeName:'a store'}</b></span><span>by <b>${drv?drv.name:'a driver'}</b></span></div></div></div></div>
       <div class="vbtns" style="margin-top:12px"><button class="btn sm vhalf" style="background:var(--red-soft);color:var(--red)" onclick="disputeDelivery('${c.id}')">Didn’t receive</button>
         <button class="btn sm vhalf" onclick="confirmReceipt('${c.id}')">✓ Confirm receipt</button></div>
@@ -702,9 +872,9 @@ function initPantryMap(){
   const c=document.getElementById('pmap');if(!c)return;
   if(pmap){pmap.remove();pmap=null;}
   const p=pantry(me.id);
-  pmap=L.map(c,{zoomControl:false,attributionControl:true}).setView([p.lat,p.lng],11);
+  pmap=L.map(c,{zoomControl:false,attributionControl:false}).setView([p.lat,p.lng],11);
   L.control.zoom({position:'bottomright'}).addTo(pmap);
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{attribution:'&copy; OpenStreetMap &copy; CARTO',maxZoom:19,subdomains:'abcd'}).addTo(pmap);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{attribution:'',maxZoom:19}).addTo(pmap);
   L.circle([p.lat,p.lng],{radius:KM_RADIUS*1000,color:'#15a06a',weight:1,fillColor:'#15a06a',fillOpacity:.05,dashArray:'4,6'}).addTo(pmap);
   L.marker([p.lat,p.lng],{icon:homeIcon(needColor(need(p.county)))}).addTo(pmap).bindTooltip('Your food bank · '+p.name,{direction:'top'});
   const seen={},pts=[[p.lat,p.lng]];
@@ -742,12 +912,12 @@ function renderAvail(){
       <div class="ih">
         <div style="display:flex;gap:13px;align-items:center;min-width:0">
           <div class="cat-ic">${icon}</div>
-          <div style="min-width:0"><div class="title">${l.category} <span class="cat-pill">${l.available} lbs</span></div>
+          <div style="min-width:0"><div class="title">${l.category} <span class="cat-pill">${l.available} ${unitLabel(l.unit,l.available)}</span></div>
             <div class="meta"><span>From <b>${l.storeName}</b></span><span>${d.toFixed(0)} mi</span><span>⏱ ${l.deadline}</span></div></div>
         </div>
         ${match?'<span class="badge prio">★ requested</span>':'<span class="badge status">extra</span>'}
       </div>
-      ${myClaim?`<div class="claimed-row">✓ You claimed ${myClaim.lbs} lbs · ${claimStatusLabel(myClaim)}</div>`:`
+      ${myClaim?`<div class="claimed-row">✓ You claimed ${amtC(myClaim)} · ${claimStatusLabel(myClaim)}</div>`:`
       <div class="foot">
         <div class="claimbox"><button onclick="claimBump('${l.id}',-10)">−</button><input id="cl_${l.id}" type="number" value="${Math.min(l.available,30)}" min="10" max="${l.available}"><button onclick="claimBump('${l.id}',10)">＋</button></div>
         <button class="btn sm" onclick="claim('${l.id}')">Claim this food</button>
@@ -755,7 +925,7 @@ function renderAvail(){
     </div>`;
   }).join('');
 }
-function confirmReceipt(cid){const c=DB.claims.find(x=>x.id===cid);if(!c)return;c.status='confirmed';c.confirmedAt=Date.now();saveDB();toast('Receipt confirmed — thank you!');renderPantry();}
+function confirmReceipt(cid){const c=DB.claims.find(x=>x.id===cid);if(!c)return;c.status='confirmed';c.confirmedAt=Date.now();saveDB();toast('Confirmed — the store can now download its tax receipt');renderPantry();}
 function disputeDelivery(cid){const c=DB.claims.find(x=>x.id===cid);if(!c)return;const r=prompt('What happened? (optional — helps us review)');c.status='disputed';c.disputeReason=r||'';if(c.driverId)DB.strikes.push({driverId:c.driverId,type:'disputed',weight:1});saveDB();toast('Marked as not received — logged quietly for review.');renderPantry();}
 function claimBump(lid,d){const l=listing(lid);const i=document.getElementById('cl_'+lid);let v=parseInt(i.value||0)+d;v=Math.max(10,Math.min(l.available,v));i.value=v;}
 function claimStatusLabel(c){return c.status==='awaiting'?'finding a driver':c.status==='enroute'?'driver on the way':'delivered ✓';}
@@ -793,7 +963,6 @@ function renderDriver(){
     <div class="driver-list">
       <div class="section-h">Delivery runs near you</div>
       <div class="section-sub">Pick up surplus and drop it at a food bank. Sorted so the highest-need runs come first.</div>
-      <div class="rating mt2">Your reliability: <b>★ ${d.rating}</b> · ${d.runs} runs · <span style="color:var(--green-d);font-weight:700">Trusted driver</span></div>
       <div class="sortbar">
         <button data-sort="priority" class="${driverSort==='priority'?'on':''}" onclick="setSort('priority')">By priority</button>
         <button data-sort="time" class="${driverSort==='time'?'on':''}" onclick="setSort('time')">By shortest time</button>
@@ -841,7 +1010,7 @@ function activeRunCard(){
   const c=DB.claims.find(x=>x.driverId===me.id&&x.status==='enroute');if(!c)return'';
   const l=listing(c.listingId),p=pantry(c.pantryId);
   return `<div class="item" style="border-color:var(--green);background:var(--green-tint)">
-    <div class="ih"><div><div class="title">🚐 Your active run <span class="cat-pill">${c.lbs} lbs</span></div>
+    <div class="ih"><div><div class="title">🚐 Your active run <span class="cat-pill">${amtC(c)}</span></div>
       <div class="meta"><span><b>${l.storeName}</b> → <b>${p.name}</b></span></div></div><span class="badge low">En route</span></div>
     <div class="foot"><button class="btn sm" style="width:100%;background:var(--red-soft);color:var(--red)" onclick="cancelRun('${c.id}')">Cancel run</button></div>
   </div>`;
@@ -854,10 +1023,10 @@ function renderOpps(){
   el.innerHTML=active+opps.map(o=>{
     const bd=urgBadge(o);
     return `<div class="item opp ${selectedOpp===o.c.id?'sel':''}" onclick="selectRun('${o.c.id}')">
-      <div class="ih"><div><div class="title">${o.l.category} <span class="cat-pill">${o.c.lbs} lbs</span></div>
+      <div class="ih"><div><div class="title">${o.l.category} <span class="cat-pill">${amtC(o.c)}</span></div>
         <div class="meta"><span><b>${o.l.storeName}</b> → <b>${o.p.name}</b></span></div></div>
         ${bd}</div>
-      <div class="meta" style="margin-top:10px"><span class="badge time">⏱ ${o.total} min round trip</span>
+      <div class="meta" style="margin-top:10px"><span class="badge time">⏱ ${o.total} min round trip</span>${(PERISH[o.l.category]||0)>=0.3?'<span class="badge med">🍓 Perishable</span>':''}
         <span style="font-size:12px;color:var(--muted)">${o.pickup}m to pickup · ${o.drop}m to drop · ${o.home}m home</span></div>
       <div class="foot"><button class="btn blue sm" style="width:100%" onclick="event.stopPropagation();accept('${o.c.id}')">Accept this run →</button></div>
       <div class="tap-hint">${selectedOpp===o.c.id?'✓ Showing on map':'Tap to preview on map'}</div>
@@ -867,9 +1036,9 @@ function renderOpps(){
 function initDriverMap(){
   const c=document.getElementById('dmap');if(!c)return;
   if(dmap){dmap.remove();dmap=null;}
-  dmap=L.map(c,{zoomControl:false,attributionControl:true}).setView([40.7,-74.25],10);
+  dmap=L.map(c,{zoomControl:false,attributionControl:false}).setView([40.7,-74.25],10);
   L.control.zoom({position:'bottomright'}).addTo(dmap);
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{attribution:'&copy; OpenStreetMap &copy; CARTO',maxZoom:19,subdomains:'abcd'}).addTo(dmap);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{attribution:'',maxZoom:19}).addTo(dmap);
   const d=driver(me.id);
   dmapDriver=L.marker([d.lat,d.lng],{icon:vanIcon('#3b7fb0')}).addTo(dmap).bindTooltip('You are here',{direction:'top'});
 }
@@ -914,12 +1083,217 @@ async function accept(cid){
   renderDriver();
 }
 
+/* ======================= CITY DASHBOARD ======================= */
+const CITY_NJ=[
+  {name:"Cumberland",lat:39.36,lng:-75.13,need:34,meals:142,last:"11:08 AM"},
+  {name:"Essex",lat:40.79,lng:-74.24,need:23,meals:312,last:"11:22 AM"},
+  {name:"Hudson",lat:40.73,lng:-74.08,need:21,meals:248,last:"11:19 AM"},
+  {name:"Camden",lat:39.80,lng:-74.95,need:20,meals:189,last:"10:54 AM"},
+  {name:"Passaic",lat:41.03,lng:-74.30,need:20,meals:204,last:"11:11 AM"},
+  {name:"Cape May",lat:39.08,lng:-74.87,need:26,meals:71,last:"09:42 AM"},
+  {name:"Atlantic",lat:39.47,lng:-74.69,need:25,meals:118,last:"10:31 AM"},
+  {name:"Mercer",lat:40.28,lng:-74.70,need:20,meals:97,last:"10:48 AM"},
+  {name:"Salem",lat:39.57,lng:-75.36,need:18,meals:54,last:"08:55 AM"},
+  {name:"Ocean",lat:39.86,lng:-74.27,need:15,meals:88,last:"10:14 AM"},
+  {name:"Warren",lat:40.86,lng:-74.99,need:14,meals:42,last:"09:33 AM"},
+  {name:"Middlesex",lat:40.44,lng:-74.41,need:12,meals:175,last:"11:02 AM"},
+  {name:"Gloucester",lat:39.71,lng:-75.14,need:12,meals:79,last:"10:21 AM"},
+  {name:"Union",lat:40.66,lng:-74.31,need:12,meals:163,last:"11:14 AM"},
+  {name:"Burlington",lat:39.88,lng:-74.67,need:10,meals:96,last:"10:38 AM"},
+  {name:"Monmouth",lat:40.29,lng:-74.23,need:10,meals:104,last:"10:47 AM"},
+  {name:"Bergen",lat:40.96,lng:-74.07,need:10,meals:131,last:"11:05 AM"},
+  {name:"Sussex",lat:41.14,lng:-74.69,need:9,meals:33,last:"09:18 AM"},
+  {name:"Morris",lat:40.86,lng:-74.55,need:8,meals:74,last:"10:09 AM"},
+  {name:"Somerset",lat:40.56,lng:-74.61,need:8,meals:62,last:"10:26 AM"},
+  {name:"Hunterdon",lat:40.57,lng:-74.91,need:7,meals:29,last:"08:47 AM"}
+];
+const CITY_GROCERS=[
+  {name:"Acme Markets",area:"Springfield",lat:40.7045,lng:-74.3146},
+  {name:"Wegmans",area:"Woodbridge",lat:40.5576,lng:-74.2846},
+  {name:"ShopRite",area:"Bloomfield",lat:40.8068,lng:-74.1854},
+  {name:"Costco",area:"Union",lat:40.6976,lng:-74.2632},
+  {name:"Whole Foods",area:"Edgewater",lat:40.8261,lng:-73.9755},
+  {name:"Trader Joe's",area:"Westfield",lat:40.6587,lng:-74.3490}
+];
+const CITY_SHELTERS=[
+  {name:"Newark Community Food Bank",lat:40.7357,lng:-74.1724,need:23},
+  {name:"Jersey City Helping Hands",lat:40.7178,lng:-74.0431,need:21},
+  {name:"Paterson Family Pantry",lat:40.9168,lng:-74.1718,need:20},
+  {name:"Elizabeth Hope Center",lat:40.6639,lng:-74.2107,need:12},
+  {name:"New Brunswick Pantry",lat:40.4862,lng:-74.4518,need:12},
+  {name:"Cumberland Community Kitchen",lat:39.4565,lng:-75.0234,need:34}
+];
+const CITY_ACTIVE=[
+  {from:CITY_GROCERS[0],to:CITY_SHELTERS[0]},
+  {from:CITY_GROCERS[2],to:CITY_SHELTERS[2]},
+  {from:CITY_GROCERS[1],to:CITY_SHELTERS[4]},
+  {from:CITY_GROCERS[4],to:CITY_SHELTERS[1]}
+];
+const CITY_WIRE=[
+  {t:"11:23",html:`<b>Newark Community Food Bank</b> confirmed receipt — 60 lbs from Acme Markets <span class="tag confirmed">CONFIRMED</span>`},
+  {t:"11:21",html:`<b>ShopRite</b> Bloomfield posted 90 lbs of fresh produce; four food banks notified within twenty miles.`},
+  {t:"11:19",html:`<b>Priya S.</b> accepted run — ShopRite Bloomfield to Paterson Family Pantry, twenty-three minutes.`},
+  {t:"11:14",html:`<b>Jersey City Helping Hands</b> confirmed receipt — 45 lbs of dairy from Whole Foods Edgewater <span class="tag confirmed">CONFIRMED</span>`},
+  {t:"11:08",html:`Run reopened after late cancellation — Cumberland Community Kitchen, need 34 <span class="tag urgent">URGENT</span>`},
+  {t:"11:02",html:`<b>Costco</b> Union posted 120 lbs of bakery; five food banks within range.`},
+  {t:"10:54",html:`<b>James T.</b> en route — Wegmans Woodbridge to New Brunswick Pantry.`},
+  {t:"10:47",html:`<b>Cumberland Community Kitchen</b> confirmed receipt — 80 lbs after URGENT reopen <span class="tag confirmed">CONFIRMED</span>`},
+  {t:"10:41",html:`<b>Trader Joe's</b> Westfield posted 50 lbs bakery; three food banks notified.`},
+  {t:"10:34",html:`<b>Aaliyah K.</b> completed delivery to Paterson Family Pantry.`}
+];
+
+let cmap=null, cityTimers=[];
+// Real state averages + top counties, embedded so the national view works offline (file:// blocks fetch). Refreshed from need_index.min.json when served over http.
+const STATE_AVG={"AK":[49,29],"GA":[46,159],"KY":[52,120],"SD":[50,66],"MS":[58,82],"CO":[40,64],"LA":[48,64],"TN":[42,95],"AL":[48,67],"AR":[52,75],"WV":[49,55],"AZ":[43,15],"ND":[44,53],"SC":[42,46],"TX":[43,254],"VA":[34,133],"NC":[41,100],"NM":[54,33],"MO":[45,115],"MI":[41,83],"PA":[32,67],"WI":[33,72],"OK":[46,77],"MT":[49,56],"IL":[36,102],"WA":[33,39],"FL":[36,67],"CA":[32,58],"IA":[36,99],"NE":[43,93],"OR":[39,36],"UT":[34,29],"NV":[37,17],"MN":[33,87],"OH":[33,88],"KS":[43,105],"ME":[39,16],"VT":[37,14],"ID":[40,44],"IN":[32,92],"NY":[29,62],"WY":[39,23],"NH":[26,10],"MD":[22,24],"HI":[26,4],"MA":[21,14],"NJ":[16,21],"DE":[23,3],"RI":[15,5],"CT":[18,8],"DC":[23,1]};
+const CITY_TOP=[["Kusilvak Census Area","AK",94],["Wheeler County","GA",93],["Owsley County","KY",93],["Buffalo County","SD",93],["Todd County","SD",93],["Martin County","KY",92],["Issaquena County","MS",91],["Ziebach County","SD",89],["Crowley County","CO",88],["East Carroll Parish","LA",88]];
+const NAME2ABBR={"Alabama":"AL","Alaska":"AK","Arizona":"AZ","Arkansas":"AR","California":"CA","Colorado":"CO","Connecticut":"CT","Delaware":"DE","District of Columbia":"DC","Florida":"FL","Georgia":"GA","Hawaii":"HI","Idaho":"ID","Illinois":"IL","Indiana":"IN","Iowa":"IA","Kansas":"KS","Kentucky":"KY","Louisiana":"LA","Maine":"ME","Maryland":"MD","Massachusetts":"MA","Michigan":"MI","Minnesota":"MN","Mississippi":"MS","Missouri":"MO","Montana":"MT","Nebraska":"NE","Nevada":"NV","New Hampshire":"NH","New Jersey":"NJ","New Mexico":"NM","New York":"NY","North Carolina":"NC","North Dakota":"ND","Ohio":"OH","Oklahoma":"OK","Oregon":"OR","Pennsylvania":"PA","Rhode Island":"RI","South Carolina":"SC","South Dakota":"SD","Tennessee":"TN","Texas":"TX","Utah":"UT","Vermont":"VT","Virginia":"VA","Washington":"WA","West Virginia":"WV","Wisconsin":"WI","Wyoming":"WY"};
+const stateCol=score=>cityHeatColor(Math.max(0,Math.min(100,(score-14)/44*100)));
+let CITY_ALL=[], CITY_STATES=Object.keys(STATE_AVG).map(s=>({state:s,score:STATE_AVG[s][0],count:STATE_AVG[s][1]}));
+const STATE_CENTROIDS={AL:[32.8,-86.8],AK:[63.5,-152.0],AZ:[34.3,-111.7],AR:[34.8,-92.4],CA:[37.2,-119.3],CO:[39.0,-105.5],CT:[41.6,-72.7],DE:[39.0,-75.5],DC:[38.9,-77.0],FL:[28.6,-82.4],GA:[32.6,-83.4],HI:[20.6,-157.5],ID:[44.4,-114.6],IL:[40.0,-89.2],IN:[39.9,-86.3],IA:[42.0,-93.5],KS:[38.5,-98.4],KY:[37.5,-85.3],LA:[31.0,-92.0],ME:[45.4,-69.2],MD:[39.0,-76.8],MA:[42.3,-71.8],MI:[44.3,-85.4],MN:[46.3,-94.3],MS:[32.7,-89.7],MO:[38.4,-92.5],MT:[47.0,-109.6],NE:[41.5,-99.8],NV:[39.3,-116.6],NH:[43.7,-71.6],NJ:[40.2,-74.7],NM:[34.4,-106.1],NY:[42.9,-75.5],NC:[35.5,-79.4],ND:[47.5,-100.3],OH:[40.3,-82.8],OK:[35.6,-97.5],OR:[43.9,-120.6],PA:[40.9,-77.8],RI:[41.7,-71.5],SC:[33.9,-80.9],SD:[44.4,-100.2],TN:[35.9,-86.4],TX:[31.5,-99.3],UT:[39.3,-111.7],VT:[44.1,-72.7],VA:[37.5,-78.9],WA:[47.4,-120.5],WV:[38.6,-80.6],WI:[44.6,-89.9],WY:[43.0,-107.6]};
+const TILE_GRID={AK:[1,1],ME:[1,11],VT:[2,10],NH:[2,11],WA:[3,1],ID:[3,2],MT:[3,3],ND:[3,4],MN:[3,5],IL:[3,6],WI:[3,7],MI:[3,8],NY:[3,9],MA:[3,10],RI:[3,11],OR:[4,1],NV:[4,2],WY:[4,3],SD:[4,4],IA:[4,5],IN:[4,6],OH:[4,7],PA:[4,8],NJ:[4,9],CT:[4,10],CA:[5,1],UT:[5,2],CO:[5,3],NE:[5,4],MO:[5,5],KY:[5,6],WV:[5,7],VA:[5,8],MD:[5,9],DE:[5,10],AZ:[6,2],NM:[6,3],KS:[6,4],AR:[6,5],TN:[6,6],NC:[6,7],SC:[6,8],DC:[6,9],OK:[7,4],LA:[7,5],MS:[7,6],AL:[7,7],GA:[7,8],HI:[8,1],TX:[8,4],FL:[8,9]};
+function cityHeatColor(n){
+  const t=Math.min(1,n/100);
+  const stops=[[0.0,[124,168,122]],[0.4,[212,179,76]],[0.7,[196,109,46]],[1.0,[168,50,50]]];
+  let a=stops[0],b=stops[stops.length-1];
+  for(let i=0;i<stops.length-1;i++){if(t>=stops[i][0]&&t<=stops[i+1][0]){a=stops[i];b=stops[i+1];break;}}
+  const range=b[0]-a[0]||1, k=(t-a[0])/range;
+  const rgb=a[1].map((v,i)=>Math.round(v+(b[1][i]-v)*k));
+  return `rgb(${rgb[0]},${rgb[1]},${rgb[2]})`;
+}
+function cityCountUp(el,target,dur=1800){
+  const start=performance.now();
+  function f(now){const t=Math.min(1,(now-start)/dur),e=1-Math.pow(1-t,4);
+    el.textContent=Math.round(target*e).toLocaleString();
+    if(t<1)requestAnimationFrame(f);else el.textContent=target.toLocaleString();}
+  requestAnimationFrame(f);
+}
+function cityClearTimers(){cityTimers.forEach(t=>clearInterval(t));cityTimers=[];}
+function renderCity(){
+  cityClearTimers();
+  const today=new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+  document.getElementById('view').innerHTML=`<div class="city-wrap">
+    <div class="city-col city-hero">
+      <div class="city-crumb">Replenish · National need map</div>
+      <div class="city-title">The Food Grid.</div>
+      <div class="city-geo">United States<span class="sep">·</span>${today}<span class="sep">·</span>All 50 states</div>
+      <div class="city-heroStat"><div class="city-heroNum num" id="cityHeroNum">0</div><div class="city-heroLab">U.S. counties scored 0 to 100 for food need.</div></div>
+      <p class="city-heroProse">
+        Replenish routes surplus toward the counties scored highest for food insecurity, in every state. <span class="accent">Mississippi, New Mexico, and Kentucky</span> rank most in need; wealthy suburbs rank lowest. The map below is real, built from public USDA and Census data. The live deliveries are a simulated demo of the network in motion.
+      </p>
+    </div>
+    <div class="city-col city-section">
+      <div class="city-sHead"><h2>Need across America.</h2><div class="meta">Average need score by state, from 3,141 counties</div></div>
+      <div class="city-mapWrap"><div id="citymap"></div>
+        <div class="city-legend">
+          <div class="lt">Avg need score · by state</div>
+          <div class="scale"><span class="sl">Lower</span><div class="bar"></div><span class="sl">Higher</span></div>
+        </div></div>
+    </div>
+    <div class="city-col city-section">
+      <div class="city-duo">
+        <div>
+          <h2 style="font-family:'Fraunces',serif;font-size:24px;font-weight:500;letter-spacing:-.02em">The wire. <span style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--amber-d);background:var(--amber-soft);padding:3px 8px;border-radius:6px;margin-left:6px;vertical-align:middle">Simulated</span></h2>
+          <div class="city-subhead">A demo of the network in motion.</div>
+          <div class="city-wire" id="cityWire"></div>
+        </div>
+        <div>
+          <h2 style="font-family:'Fraunces',serif;font-size:24px;font-weight:500;letter-spacing:-.02em">Highest need.</h2>
+          <div class="city-subhead">Real counties, nationwide, from the model.</div>
+          <table class="city-counties"><thead><tr><th>County</th><th class="r">Need</th></tr></thead><tbody id="cityTable"></tbody></table>
+        </div>
+      </div>
+    </div>
+    <div class="city-col city-method">
+      <h3>How the need score works</h3>
+      <div style="display:flex;gap:9px;flex-wrap:wrap;margin:14px 0 20px">
+        <span style="background:var(--paper,#efece3);border:1px solid var(--line);border-radius:20px;padding:6px 13px;font-size:12.5px;font-weight:600;color:var(--ink2)">3,141 counties scored</span>
+        <span style="background:var(--paper,#efece3);border:1px solid var(--line);border-radius:20px;padding:6px 13px;font-size:12.5px;font-weight:600;color:var(--ink2)">0 to 100 scale</span>
+        <span style="background:var(--paper,#efece3);border:1px solid var(--line);border-radius:20px;padding:6px 13px;font-size:12.5px;font-weight:600;color:var(--ink2)">Offline · no API keys</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px;max-width:560px;margin-bottom:18px">
+        ${[['Food insecurity (USDA + Census)',40],['Grocery access (USDA Food Access Atlas)',30],['Poverty rate (Census ACS)',20],['Median income (Census ACS)',10]].map(([l,w])=>`<div style="display:flex;align-items:center;gap:12px"><div style="flex:1;font-size:13px;font-weight:600;color:var(--ink2)">${l}</div><div style="width:150px;height:8px;background:var(--paper,#ece9e0);border-radius:5px;overflow:hidden"><i style="display:block;height:100%;width:${w}%;background:linear-gradient(90deg,#34c285,#0f8657);border-radius:5px"></i></div><div style="width:36px;text-align:right;font-weight:700;font-size:13px">${w}%</div></div>`).join('')}
+      </div>
+      <p style="font-size:12.5px;color:var(--muted);line-height:1.6;max-width:640px">Methodology follows Feeding America's Map the Meal Gap (Gundersen et al.). Donations are protected under the Bill Emerson Good Samaritan Food Donation Act (1996) and the Food Donation Improvement Act (2022).</p>
+      <div class="sources"><span>USDA · ers.usda.gov</span><span>Feeding America · mapthemealgap.org</span><span>U.S. Census ACS</span><span>OpenStreetMap</span></div>
+      <div class="closing">Civic infrastructure for the cities of tomorrow.</div>
+    </div>
+  </div>`;
+  setTimeout(initCityMap,60);
+  cityCountUp(document.getElementById('cityHeroNum'),3141);
+  renderCityWire(CITY_WIRE);
+  let cwirePtr=0;
+  cityTimers.push(setInterval(()=>{cwirePtr=(cwirePtr+1)%CITY_WIRE.length;const reord=[{...CITY_WIRE[cwirePtr],_fresh:true},...CITY_WIRE.filter((_,i)=>i!==cwirePtr)];renderCityWire(reord);},6500));
+  const src=CITY_ALL.length?[...CITY_ALL].sort((a,b)=>b.need_score-a.need_score).slice(0,10).map(c=>[c.area,c.state,c.need_score]):CITY_TOP;
+  document.getElementById('cityTable').innerHTML=src.map(([area,st,sc])=>{const col=cityHeatColor(sc);return `<tr><td class="name">${area}, ${st}</td><td class="r"><span class="scoreCell"><span class="scoreDot" style="background:${col}"></span>${sc}</span></td></tr>`;}).join('');
+}
+function renderCityWire(items){
+  const el=document.getElementById('cityWire');if(!el)return;
+  el.innerHTML='';
+  items.slice(0,7).forEach((it,i)=>{
+    const row=document.createElement('div');
+    row.className='city-wireItem'+(i===0&&it._fresh?' fresh':'');
+    row.innerHTML=`<div class="city-wireTime num">${it.t}</div><div class="city-wireText">${it.html}</div>`;
+    el.appendChild(row);
+  });
+}
+function initCityMap(){
+  const c=document.getElementById('citymap');if(!c)return;
+  if(cmap){try{cmap.remove();}catch(e){}cmap=null;}
+  c.innerHTML='';
+  let map;
+  try{
+    map=L.map(c,{zoomControl:false,attributionControl:false,minZoom:3,maxZoom:6,scrollWheelZoom:false,dragging:true}).setView([37.8,-96],4);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png',{attribution:''}).addTo(map);
+  }catch(e){ return cityTileFallback(c); }
+  cmap=map;
+  const urls=['https://cdn.jsdelivr.net/gh/PublicaMundi/MappingAPI@master/data/geojson/us-states.geojson','https://raw.githubusercontent.com/PublicaMundi/MappingAPI/master/data/geojson/us-states.geojson'];
+  (async()=>{
+    for(const u of urls){
+      try{
+        const r=await fetch(u); if(!r.ok) continue;
+        const geo=await r.json();
+        L.geoJSON(geo,{
+          style:f=>{const ab=NAME2ABBR[f.properties.name];const d=ab&&STATE_AVG[ab];
+            return {fillColor:d?stateCol(d[0]):'#e7e4da',fillOpacity:.92,color:'#fbf9f2',weight:1.2};},
+          onEachFeature:(f,layer)=>{const ab=NAME2ABBR[f.properties.name];const d=ab&&STATE_AVG[ab];
+            layer.on('mouseover',()=>layer.setStyle({weight:2.6,color:'#ffffff'}));
+            layer.on('mouseout',()=>layer.setStyle({weight:1.2,color:'#fbf9f2'}));
+            if(d)layer.bindTooltip(`<b>${f.properties.name}</b> · avg need ${d[0]} · ${d[1]} counties`,{sticky:true});}
+        }).addTo(map);
+        return;
+      }catch(e){}
+    }
+    try{map.remove();}catch(e){} cmap=null; cityTileFallback(c); // CDN unreachable -> tile fallback
+  })();
+}
+function cityTileFallback(c){
+  const W=11,H=8,cell=100;
+  let svg=`<svg viewBox="0 0 ${W*cell} ${H*cell}" preserveAspectRatio="xMidYMid meet" style="width:100%;height:100%;display:block">`;
+  CITY_STATES.forEach(s=>{
+    const pos=TILE_GRID[s.state]; if(!pos) return;
+    const x=(pos[1]-1)*cell, y=(pos[0]-1)*cell;
+    const col=stateCol(s.score);
+    const txt=(s.score-14)/44*100>50?'#fff':'#17251d';
+    svg+=`<g><rect x="${x+5}" y="${y+5}" width="${cell-10}" height="${cell-10}" rx="15" fill="${col}" stroke="#fbf9f2" stroke-width="2"><title>${s.state} · avg need ${s.score}</title></rect>`
+      +`<text x="${x+cell/2}" y="${y+cell/2-3}" text-anchor="middle" font-size="31" font-weight="700" fill="${txt}" font-family="'Plus Jakarta Sans',system-ui,sans-serif">${s.state}</text>`
+      +`<text x="${x+cell/2}" y="${y+cell/2+27}" text-anchor="middle" font-size="23" fill="${txt}" opacity=".82" font-family="'Plus Jakarta Sans',system-ui,sans-serif">${s.score}</text></g>`;
+  });
+  svg+=`</svg>`; c.innerHTML=svg;
+}
+
 /* ======================= NEED INDEX (sister) ======================= */
 async function loadNeed(){
   // Load the real national Need Index (3,141 counties). Overrides the NJ fallback above.
   for(const f of ['need_index.min.json','need_index.json']){
     try{const r=await fetch(f,{cache:'no-store'});if(!r.ok)continue;const j=await r.json();
-      if(j.areas){j.areas.forEach(a=>{if(a.state==='NJ'&&a.area&&typeof a.need_score==='number')AREA_NEED[a.area]=a.need_score;});return;}
+      if(j.areas){
+        j.areas.forEach(a=>{if(a.state==='NJ'&&a.area&&typeof a.need_score==='number')AREA_NEED[a.area]=a.need_score;});
+        CITY_ALL=j.areas;
+        const g={}; j.areas.forEach(a=>{(g[a.state]=g[a.state]||[]).push(a.need_score);});
+        CITY_STATES=Object.keys(g).map(s=>({state:s,score:Math.round(g[s].reduce((x,y)=>x+y,0)/g[s].length),count:g[s].length}));
+        if(me.role==='city'){ initCityMap(); const t=document.getElementById('cityTable'); if(t&&!t.children.length) renderCity(); }
+        return;
+      }
     }catch(e){}
   }
 }
