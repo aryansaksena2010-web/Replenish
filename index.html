@@ -498,8 +498,18 @@ function parseText(txt){
   else if(t0.includes('noon'))deadline="by noon";
   else if(mm=t0.match(/(monday|tuesday|wednesday|thursday|friday|saturday|sunday)/))deadline=`by ${cap(mm[1])}`;
   else if(mm=t0.match(/(\d+)\s*hour/))deadline=`in ${mm[1]} hours`;
+  // strip the deadline/time phrase so it isn't mistaken for an item (e.g. "need it gone by 6pm")
+  const body=low
+    .replace(/\bby\s+\d{1,2}(:\d{2})?\s*(am|pm)?/g,' ')
+    .replace(monRe,' ')
+    .replace(/\d{1,2}\s*(am|pm)\b/g,' ')
+    .replace(/\bby\b/g,' ')
+    .replace(/\b(tonight|tomorrow|noon|today|end of day)\b/g,' ')
+    .replace(/\bin\s+\d+\s*hours?\b/g,' ')
+    .replace(/\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/g,' ')
+    .replace(/\b(need(s)?\s+(it|to)\s+(gone|go)|has to go|get it gone|gone by|going|gone)\b/g,' ');
   // split into separate items on "and", commas, "+", "plus"
-  const segs=low.split(/\s+and\s+|,|;|\+|\n|\bplus\b/).map(s=>s.trim()).filter(Boolean);
+  const segs=body.split(/\s+and\s+|,|;|\+|\n|\bplus\b/).map(s=>s.trim()).filter(Boolean);
   const items=[];
   segs.forEach(seg=>{
     const t=' '+seg+' ';
